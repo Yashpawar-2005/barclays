@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int               @id @default(autoincrement())
+  email           String            @unique
+  name            String?
+  password        String
+  organisations   UserOrganisation[] 
+}
+
+model Organisation {
+  id              Int               @id @default(autoincrement())
+  name            String
+  Termsheetname   String?
+  senderemail     String?
+  users           UserOrganisation[]
+  termsheets      Termsheet[]
+}
+
+model UserOrganisation {
+  userId          Int
+  organisationId  Int
+  role            String 
+  user            User           @relation(fields: [userId], references: [id])
+  organisation    Organisation   @relation(fields: [organisationId], references: [id])
+  @@id([userId, organisationId]) 
+} 
+
+model Termsheet {
+  id              Int           @id @default(autoincrement())
+  title           String
+  description     String?
+  organisationId  Int
+  s3Link          String        
+  status          Status  
+  organisation    Organisation  @relation(fields: [organisationId], references: [id])
+  discrepancies   Discrepancy[] 
+}
+
+model Discrepancy {
+  id              Int           @id @default(autoincrement())
+  role            String        
+  content         String      
+  termsheetId     Int
+  termsheet       Termsheet     @relation(fields: [termsheetId], references: [id])
+
+}
+
+
+enum Status {
+  structured
+  validated
+  rejected
+  accepted
+}
