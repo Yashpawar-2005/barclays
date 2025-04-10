@@ -1,2 +1,2 @@
 # barclays
-for barclyash
+for barcash
