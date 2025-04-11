@@ -1,7 +1,7 @@
 import os
 from data_extraction import ocr
 from flask import Flask,request,jsonify
-from data_extraction.ocr import *
+from ocr import *
 from flask_cors import CORS
 
 

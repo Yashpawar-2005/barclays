@@ -58,5 +58,5 @@ if __name__ == "__main__":
     # print(doc)
     # print(doc)
     # print("\n\n no. of paras: ",len(doc))
-    txt = extract_excel_content(excel_path)
+    txt = extract_img_content(img_path=img_path)
     print(txt)
