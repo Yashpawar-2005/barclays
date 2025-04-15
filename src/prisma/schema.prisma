@@ -56,7 +56,11 @@ model Discrepancy {
   content         String      
   termsheetId     Int
   termsheet       Termsheet     @relation(fields: [termsheetId], references: [id])
-
+}
+model file{
+  id Int @id @default(autoincrement())
+  s3Link String
+  type String
 }
 
 
