@@ -1,0 +1,125 @@
+# Node modules
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Environment variables
+.env
+.env.*.local
+.env.local
+
+# Build output
+dist/
+build/
+tmp/
+temp/
+out/
+coverage/
+.next/
+.nuxt/
+.storybook/
+.cache/
+.svelte-kit/
+
+# Binaries
+*.exe
+*.out
+*.app
+*.dmg
+
+# Optional npm cache directory
+.npm/
+
+# Optional eslint cache
+.eslintcache
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Webpack cache
+.cache/
+webpack-cache/
+
+# Parcel cache
+.cache/
+.parcel-cache/
+
+# VS Code settings
+.vscode/
+.history/
+
+# JetBrains IDEs
+.idea/
+*.iml
+
+# Mac system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux system files
+*~
+
+# Dependency directories
+jspm_packages/
+
+# Testing
+coverage/
+.nyc_output/
+test_output/
+
+# Yarn
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
+.yarnrc.yml
+
+# PM2 logs
+.pids/
+*.log
+
+# Prisma
+prisma/migrations/
+prisma/dev.db
+*.sqlite
+*.sqlite3
+
+# S3 / Uploads
+uploads/
+*.s3.json
+
+# Docker
+docker-compose.override.yml
+docker-compose.dev.yml
+.docker/
+
+# Next.js specific
+.next/
+out/
+
+# Expo / React Native / Metro
+.expo/
+.expo-shared/
+*.expo
+metro-cache/

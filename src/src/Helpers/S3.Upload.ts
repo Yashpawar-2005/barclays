@@ -19,7 +19,9 @@ const uploadToS3 = async (file: Express.Multer.File) => {
     Bucket: BUCKET_NAME,
     Key: `input/${Date.now()}-${file.originalname}`,
     Body: fileStream,
-    ContentType: file.mimetype
+    ContentType: file.mimetype,
+    ContentDisposition: 'inline',
+     ACL: 'public-read'
   });
   
 

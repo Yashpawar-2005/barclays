@@ -14,7 +14,7 @@ const storage = multer.diskStorage({
     if (!fs.existsSync('uploads')) {
       fs.mkdirSync('uploads');
     }
-    cb(null, 'uploads/');
+    cb(null, 'uploads');
   },
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`);
@@ -66,5 +66,5 @@ const fileFiltera = (req: Request, file: Express.Multer.File, cb: multer.FileFil
 
 filerouter.post("/upload",authenticate,upload.single('file'),function_to_upload);
 //@ts-ignore
-filerouter.get("/getfile",authenticate,getfile)
+filerouter.post("/getfile",authenticate,getfile)
 export default filerouter

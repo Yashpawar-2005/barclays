@@ -13,7 +13,7 @@ import FormData from 'form-data';
 AWS.config.update({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION || 'us-east-1'
+  region: process.env.AWS_REGION || 'ap-south-1'
 });
 
 
@@ -34,10 +34,6 @@ const forwardFileToExternalService = async (file: Express.Multer.File, fileType:
     formData.append('fileType', fileType);
     
     const response = await axios.post(EXTERNAL_API_URL, formData, {
-      headers: {
-        ...formData.getHeaders(),
-        'Authorization': `Bearer ${process.env.EXTERNAL_API_KEY || ''}`
-      },
       maxBodyLength: Infinity,
       maxContentLength: Infinity
     });
@@ -105,7 +101,7 @@ const function_to_upload = async (req: Request, res: Response): Promise<void> =>
 
   const getfile=async (req: Request, res: Response) => {
     const { key } = req.body;
-  
+    console.log(key)
     if (!key) {
       return res.status(400).json({ error: 'Missing file key in URL' });
     }
@@ -119,7 +115,7 @@ const function_to_upload = async (req: Request, res: Response): Promise<void> =>
       const signedUrl = await getSignedUrl(s3Client, command, {
         expiresIn: 30000, 
       });
-  
+      console.log("returning")
       return res.status(200).json({ url: signedUrl });
     } catch (error: unknown) {
       console.error('Error generating signed URL:', error);
