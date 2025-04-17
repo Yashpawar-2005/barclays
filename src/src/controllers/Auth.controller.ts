@@ -42,9 +42,10 @@ export const signup= async (req: Request, res: Response): Promise<void> => {
 
 export const signin = async (req: Request, res: Response) :Promise<void> => {
     try {
-        const { email, password } = req.body;
+        console.log(req.body)
+        const { username:name, password }:{ username: string; password: string } = req.body;
         const user = await prismaconnection.user.findUnique({
-            where: { email },
+            where: { name },
         });
 
         if (!user) {
@@ -63,9 +64,11 @@ export const signin = async (req: Request, res: Response) :Promise<void> => {
             { expiresIn: "1h" }
         );
         res.status(200).json({ message: "Signin successful", token, user });
+        return
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Internal server error" });
+        return
     }
 };
 
