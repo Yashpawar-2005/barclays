@@ -5,6 +5,7 @@ import { Member } from "./organization"
 import MemberAssignment from './MemberAssignment'
 import MemberSearch from './MemberSearch'
 import MemberList from './MemberList'
+import Loader from '../../ui/Loader'
 
 interface NewOrganizationTabProps {
   availableMembers: Member[];
@@ -24,6 +25,8 @@ const NewOrganizationTab = ({
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [currentMember, setCurrentMember] = useState<Member | null>(null)
   const [tempRole, setTempRole] = useState<string>('')
+  
+  const isLoading = availableMembers.length === 0;
   
   // Client-side filtering of members based on search query
   const filteredMembers = availableMembers.filter(member => 
@@ -59,9 +62,9 @@ const NewOrganizationTab = ({
   }
   
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col space-y-4 sm:space-y-5 overflow-y-auto h-full pb-4">
       <div>
-        <Label htmlFor="new-org-name" className="text-xs font-medium uppercase tracking-wide text-zinc-500  block">
+        <Label htmlFor="new-org-name" className="text-xs font-medium uppercase tracking-wide text-zinc-500 block mb-1.5">
           Organization Name
         </Label>
         <Input
@@ -69,7 +72,7 @@ const NewOrganizationTab = ({
           placeholder="Enter organization name"
           value={organizationName}
           onChange={(e) => setOrganizationName(e.target.value)}
-          className="bg-zinc-50 border-zinc-200 focus:ring-black focus:border-black"
+          className="bg-zinc-50 border-zinc-200 focus:ring-black focus:border-black text-sm sm:text-base"
         />
       </div>
       
@@ -88,25 +91,34 @@ const NewOrganizationTab = ({
         />
       )}
       
-      <div className="grid md:grid-cols-2 gap-6">
-        <MemberList 
-          title="Available Members"
-          members={filteredMembers}
-          selectedMembers={selectedMembers}
-          onMemberClick={handleMemberSelection}
-          emptyMessage="No members found"
-          showRoleBadges
-        />
-        
-        <MemberList 
-          title="Selected Members"
-          members={selectedMembers}
-          onRemove={removeMember}
-          emptyMessage="No members selected yet"
-          count={selectedMembers.length}
-          showRemoveButton
-        />
-      </div>
+      {isLoading ? (
+        <div className="my-8">
+          <Loader text="Loading members..." />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 flex-1 min-h-0">
+          <MemberList 
+            title="Available Members"
+            members={filteredMembers}
+            selectedMembers={selectedMembers}
+            onMemberClick={handleMemberSelection}
+            emptyMessage="No members found"
+            showRoleBadges
+            height="auto"
+            isLoading={isLoading}
+          />
+          
+          <MemberList 
+            title="Selected Members"
+            members={selectedMembers}
+            onRemove={removeMember}
+            emptyMessage="No members selected yet"
+            count={selectedMembers.length}
+            showRemoveButton
+            height="auto"
+          />
+        </div>
+      )}
     </div>
   );
 };

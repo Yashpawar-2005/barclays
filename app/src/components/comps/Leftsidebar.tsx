@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
-import { Plus, ChevronDown, ChevronRight, Users, Settings, Shield, Menu, X, Building } from 'lucide-react';
+import { Plus, ChevronDown, ChevronRight, Users, Settings, Shield, Menu, X, Building, LogOut } from 'lucide-react';
 import { useUserStore } from '../../services/auth.service';
 import { api } from '../../services/axios';
+import { useNavigate } from 'react-router-dom';
 
 interface User {
   id: number;
@@ -26,9 +27,10 @@ interface Props {
 }
 
 const OrganizationSidebar:  React.FC<Props> = ({createorgtoggle,setorgtoggle}) => {
-  const { user } = useUserStore();
-  const [adminExpanded, setAdminExpanded] = useState<boolean>(true);
-  const [memberExpanded, setMemberExpanded] = useState<boolean>(true);
+  const { user, logout } = useUserStore();
+  const navigate = useNavigate();
+  const [adminExpanded, setAdminExpanded] = useState<boolean>(false);
+  const [memberExpanded, setMemberExpanded] = useState<boolean>(false);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [adminOrgs, setAdminOrgs] = useState<Organization[]>([]);
   const [memberOrgs, setMemberOrgs] = useState<Organization[]>([]);
@@ -105,8 +107,17 @@ const OrganizationSidebar:  React.FC<Props> = ({createorgtoggle,setorgtoggle}) =
     if (!user?.email) return "U";
     const parts = user.email.split('@');
     if (parts.length === 0) return "U";
-    const name = parts[0];
+    const name = user.name;
     return name.slice(0, 2).toUpperCase();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   return (
@@ -179,92 +190,111 @@ const OrganizationSidebar:  React.FC<Props> = ({createorgtoggle,setorgtoggle}) =
           <div className="h-px bg-gray-200"></div>
         </div>
         
-        {/* Loading State */}
-        {isLoading && (
-          <div className="px-4 py-6 text-center text-gray-500">
-            Loading organizations...
-          </div>
-        )}
-        
-        {/* Error State */}
-        {error && (
-          <div className="px-4 py-6 text-center text-red-500">
-            {error}
-          </div>
-        )}
-        
-        {/* Admin Organizations Section */}
-        {!isLoading && !error && (
-          <Collapsible
-            open={adminExpanded}
-            onOpenChange={setAdminExpanded}
-            className="px-4 py-2"
-          >
-            <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium text-black hover:text-black cursor-pointer py-2 px-2 rounded hover:bg-gray-100">
-              <span>Admin Organizations</span>
-              {adminExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-            </CollapsibleTrigger>
-            
-            <CollapsibleContent className="pl-2 space-y-2 mt-2">
-              {adminOrgs.length === 0 ? (
-                <p className="text-sm text-gray-500 p-2">No admin organizations</p>
-              ) : (
-                adminOrgs.map(org => (
-                  <Card key={org.id} className="bg-gray-50 hover:bg-gray-100 border-gray-200 cursor-pointer transition-colors">
-                    <CardContent className="flex items-center gap-2 p-3 text-sm">
-                      <Shield size={16} className="text-blue-500" />
-                      <span className="text-black font-medium truncate">{org.name}</span>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </CollapsibleContent>
-          </Collapsible>
-        )}
-        
-        {/* Member Organizations Section */}
-        {!isLoading && !error && (
-          <Collapsible
-            open={memberExpanded}
-            onOpenChange={setMemberExpanded}
-            className="px-4 py-2"
-          >
-            <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium text-black hover:text-black cursor-pointer py-2 px-2 rounded hover:bg-gray-100">
-              <span>Member Organizations</span>
-              {memberExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-            </CollapsibleTrigger>
-            
-            <CollapsibleContent className="pl-2 space-y-2 mt-2">
-              {memberOrgs.length === 0 ? (
-                <p className="text-sm text-gray-500 p-2">No member organizations</p>
-              ) : (
-                memberOrgs.map(org => (
-                  <Card key={org.id} className="bg-gray-50 hover:bg-gray-100 border-gray-200 cursor-pointer transition-colors">
-                    <CardContent className="flex items-center gap-2 p-3 text-sm">
-                      {getRoleIcon(org.role)}
-                      <span className="text-black font-medium truncate">{org.name}</span>
-                      <span className="ml-auto text-xs text-blue-500 capitalize">{org.role}</span>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </CollapsibleContent>
-          </Collapsible>
-        )}
-        
-        {/* Bottom spacer */}
-        <div className="flex-grow"></div>
+        {/* Organizations container with adaptive height */}
+        <div className="flex-1 min-h-0 flex flex-col">
+          {/* Loading State */}
+          {isLoading && (
+            <div className="px-4 py-6 text-center text-gray-500">
+              Loading organizations...
+            </div>
+          )}
+          
+          {/* Error State */}
+          {error && (
+            <div className="px-4 py-6 text-center text-red-500">
+              {error}
+            </div>
+          )}
+          
+          {/* Admin Organizations Section */}
+          {!isLoading && !error && (
+            <Collapsible
+              open={adminExpanded}
+              onOpenChange={setAdminExpanded}
+              className="px-4 py-2"
+            >
+              <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium text-black hover:text-black cursor-pointer py-2 px-2 rounded hover:bg-gray-100">
+                <span>Admin Organizations</span>
+                {adminExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent className={`pl-2 space-y-1.5 mt-2 pr-2 overflow-y-auto ${adminExpanded && memberExpanded ? 'max-h-[20vh]' : 'max-h-[35vh]'}`}>
+                {adminOrgs.length === 0 ? (
+                  <p className="text-sm text-gray-500 p-2">No admin organizations</p>
+                ) : (
+                  adminOrgs.map(org => (
+                    <Card key={org.id} className="bg-gray-50 hover:bg-gray-100 border-gray-200 cursor-pointer transition-colors">
+                      <CardContent className="flex flex-col py-1.5 px-3 text-sm">
+                        <span className="text-black font-medium truncate">{org.name}</span>
+                        <div className="flex items-center gap-1 text-xs text-blue-500">
+                          <Shield size={12} />
+                          <span>Admin</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+          
+          {/* Member Organizations Section */}
+          {!isLoading && !error && (
+            <Collapsible
+              open={memberExpanded}
+              onOpenChange={setMemberExpanded}
+              className="px-4 py-2"
+            >
+              <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium text-black hover:text-black cursor-pointer py-2 px-2 rounded hover:bg-gray-100">
+                <span>Member Organizations</span>
+                {memberExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent className={`pl-2 space-y-1.5 mt-2 pr-2 overflow-y-auto ${adminExpanded && memberExpanded ? 'max-h-[20vh]' : 'max-h-[35vh]'}`}>
+                {memberOrgs.length === 0 ? (
+                  <p className="text-sm text-gray-500 p-2">No member organizations</p>
+                ) : (
+                  memberOrgs.map(org => (
+                    <Card key={org.id} className="bg-gray-50 hover:bg-gray-100 border-gray-200 cursor-pointer transition-colors">
+                      <CardContent className="flex flex-col py-1.5 px-3 text-sm">
+                        <span className="text-black font-medium truncate">{org.name}</span>
+                        <div className="flex items-center gap-1 text-xs text-blue-500">
+                          {org.role === 'editor' ? <Settings size={12} /> : <Users size={12} />}
+                          <span className="capitalize">{org.role}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+        </div>
         
         {/* Footer with user info */}
-        <div className="p-4 border-t border-gray-200 mt-auto">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center">
-              <span className="text-xs text-white font-medium">{getUserInitials()}</span>
+        <div className="p-4 border-t border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center">
+                <span className="text-xs text-white font-medium">{getUserInitials()}</span>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-black">{user?.name}</p>
+                <p className="text-xs text-gray-500">{user?.email}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-black">{user?.email?.split('@')[0]}</p>
-              <p className="text-xs text-gray-500">{user?.email}</p>
-            </div>
+            <Button 
+              onClick={handleLogout}
+              variant="ghost" 
+              size="icon"
+              className="text-black-600 hover:text-red-700 hover:bg-red-50 transition-colors relative group"
+              title="Logout"
+            >
+              <LogOut size={16} />
+              <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                Logout
+              </span>
+            </Button>
           </div>
         </div>
       </div>
