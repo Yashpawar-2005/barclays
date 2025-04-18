@@ -167,3 +167,167 @@ export const get_members = async (req: Request, res: Response): Promise<void> =>
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+
+
+
+
+
+export const getAllUsers = async (req: Request, res: Response) => {
+  if (!req.userId) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  try {
+    const users = await prismaconnection.user.findMany({
+      where: {
+        id: {
+          not: parseInt(req.userId),
+        }
+      },
+      select: {
+        id: true,
+        name: true,
+      }
+    });
+
+    res.status(200).json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+};
+
+
+
+
+
+export const createOrganization = async (req: Request, res: Response) => {
+  const { name, members } = req.body;
+
+  if (!name) {
+    res.status(400).json({ error: 'Organization name is required' });
+    return }
+  if (!req.userId) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return 
+  }
+
+  try {
+    const newOrg = await prismaconnection.organisation.create({
+      data: {
+        name,
+        id: parseInt(req.userId), 
+      }
+    });
+
+    if (members && Array.isArray(members)) {
+      await prismaconnection.userOrganisation.createMany({
+        data: members.map(m => ({
+          userId: parseInt(m.id),
+          organisationId: newOrg.id,
+          role: m.role || 'Member'
+        }))
+      });
+    }
+
+    res.status(201).json({ id: String(newOrg.id), name: newOrg.name });
+  } catch (error) {
+    console.error('Error creating organization:', error);
+    res.status(500).json({ error: 'Failed to create organization' });
+  }
+};
+
+
+
+
+
+export const createOrganizationWithUsers = async (req: Request, res: Response) => {
+  console.log(req.body)
+  const { orgName, users } = req.body; // Expecting { orgName: string, users: [{ id, name, role }] }
+  if(!req.userId){
+    res.status(401).json({error:"not authenticated"})
+    return
+  }
+  const currentUserId = parseInt(req.userId);  // Middleware provides req.userId
+  if (!orgName || !users || users.length === 0) {
+    res.status(400).json({ error: 'Organization name and users are required' });
+    return 
+  }
+
+  try {
+    // Step 1: Create the organization
+    const newOrganization = await prismaconnection.organisation.create({
+      data: {
+        name: orgName,
+      },
+    });
+
+    // Step 2: Prepare to add the requesting user as an admin
+    const userOrganisations = [
+      {
+        userId: currentUserId,    
+        organisationId: newOrganization.id,
+        role: 'admin',            
+      },
+    ];
+
+    // Step 3: Create or Link other users to the organization
+    for (const user of users) {
+      const existingUser = await prismaconnection.user.findUnique({
+        where: { id: user.id },
+      });
+
+      let userId = user.id;
+
+      if (!existingUser) {
+        // Create a new user if not existing
+        const newUser = await prismaconnection.user.create({
+          data: {
+            name: user.name,
+            email: user.email, // Ensure email is unique if provided
+            password: 'defaultPassword' // Handle password securely
+          },
+        });
+        userId = newUser.id;
+      }
+
+      userOrganisations.push({
+        userId: userId,
+        organisationId: newOrganization.id,
+        role: user.role,
+      });
+    }
+    
+
+    // Step 4: Add users (including the admin) to the organization
+    await prismaconnection.userOrganisation.createMany({
+      data: userOrganisations,
+    });
+
+    // Return the created organization with the associated users
+    const createdOrganization = await prismaconnection.organisation.findUnique({
+      where: { id: newOrganization.id },
+      include: {
+        users: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.status(201).json(createdOrganization); // Return the created org with users
+  } catch (error) {
+    console.error('Error creating organization:', error);
+    res.status(500).json({ error: 'Failed to create organization' });
+  }
+};
+

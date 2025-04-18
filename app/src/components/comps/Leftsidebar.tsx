@@ -22,9 +22,10 @@ interface Organization {
 }
 interface Props {
   createorgtoggle: boolean;
+  setorgtoggle:  React.Dispatch<React.SetStateAction<boolean>>
 }
 
-const OrganizationSidebar:  React.FC<Props> = ({createorgtoggle}) => {
+const OrganizationSidebar:  React.FC<Props> = ({createorgtoggle,setorgtoggle}) => {
   const { user } = useUserStore();
   const [adminExpanded, setAdminExpanded] = useState<boolean>(true);
   const [memberExpanded, setMemberExpanded] = useState<boolean>(true);
@@ -167,7 +168,7 @@ const OrganizationSidebar:  React.FC<Props> = ({createorgtoggle}) => {
         
         {/* Create Organization Button */}
         <div className="p-4">
-          <Button className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2">
+          <Button className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 text-white font-medium py-2" onClick={() => {console.log("woringking");setorgtoggle(prev => !prev)}}>
             <Plus size={16} />
             <span>Create Organization</span>
           </Button>

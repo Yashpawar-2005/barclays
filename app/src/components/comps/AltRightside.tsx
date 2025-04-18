@@ -4,8 +4,9 @@ import { Plus, Building2, Users, ChevronRight, Shield, ActivitySquare } from 'lu
 import { Card, CardContent } from '../ui/card';
 interface Props {
   createorgtoggle: boolean;
+  setorgtoggle:  React.Dispatch<React.SetStateAction<boolean>>
 }
-const SecondOrganisationcreation:  React.FC<Props> = ({createorgtoggle}) => {
+const SecondOrganisationcreation:  React.FC<Props> = ({createorgtoggle,setorgtoggle}) => {
   return (
     <div className="flex-1 bg-gradient-to-b from-white to-gray-50 p-4 md:p-8 lg:p-12">
       <div className="w-full max-w-6xl mx-auto">
@@ -75,7 +76,7 @@ const SecondOrganisationcreation:  React.FC<Props> = ({createorgtoggle}) => {
                 
                 <Button 
                   className="h-12 px-6 flex items-center justify-center gap-2 bg-black hover:bg-gray-800 text-white font-medium"
-                  onClick={() => console.log("Create organization clicked")}
+                  onClick={() => {console.log("woringking");setorgtoggle(prev => !prev)}}
                 >
                   <Plus size={18} />
                   <span>Create Organization</span>
