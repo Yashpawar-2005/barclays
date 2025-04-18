@@ -88,14 +88,7 @@ const OrganizationSidebar = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const getRoleIcon = (role: string) => {
-    switch(role) {
-      case 'admin': return <Shield size={16} className="text-blue-500" />;
-      case 'editor': return <Settings size={16} className="text-gray-600" />;
-      case 'member': return <Users size={16} className="text-gray-600" />;
-      default: return <Users size={16} className="text-gray-400" />;
-    }
-  };
+ 
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -176,7 +169,7 @@ const OrganizationSidebar = () => {
         
         {/* Create Organization Button */}
         <div className="p-4">
-          <div className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 text-white font-medium py-2" onClick={() => {console.log("woringking");setorgtoggle(prev => !prev)}}>
+          <div className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 text-white font-medium py-2">
             <Plus size={16} />
             <span>Create Organization</span>
           </div>
