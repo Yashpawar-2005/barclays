@@ -123,3 +123,12 @@ out/
 .expo-shared/
 *.expo
 metro-cache/
+
+#Python
+__pycache__
+docling_testing.py
+getting_docling_working.txt
+huggingface_steps.txt
+
+#Misc
+docs
