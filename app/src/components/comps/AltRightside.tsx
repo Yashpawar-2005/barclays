@@ -2,8 +2,10 @@ import React from 'react';
 import { Button } from '../ui/button';
 import { Plus, Building2, Users, ChevronRight, Shield, ActivitySquare } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
-
-const SecondOrganisationcreation: React.FC = () => {
+interface Props {
+  createorgtoggle: boolean;
+}
+const SecondOrganisationcreation:  React.FC<Props> = ({createorgtoggle}) => {
   return (
     <div className="flex-1 bg-gradient-to-b from-white to-gray-50 p-4 md:p-8 lg:p-12">
       <div className="w-full max-w-6xl mx-auto">

@@ -33,6 +33,7 @@ export const create_organization=async(req:Request,res:Response)=>{
 
 export const get_organization=async (req:Request,res:Response) => {
     try {
+      console.log("get-org")
         const userId=Number(req.userId)
         const userOrgs = await prismaconnection.user.findUnique({
             where: { id: userId },

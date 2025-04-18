@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt'
 import jwt from "jsonwebtoken";
 export const signup= async (req: Request, res: Response): Promise<void> => {
     try {
+        console.log(req.body)
         const { name, email, password } = req.body;
         
         if (!name || !email || !password) {
