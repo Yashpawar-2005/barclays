@@ -10,7 +10,7 @@ export type UserType = {
 
 const saveUserToStorage = (user: UserType | null) => {
   if (user) {
-    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('user', JSON.stringify({ email: user.email, name: user.name,id: user.id }));
   } else {
     localStorage.removeItem('user');
   }

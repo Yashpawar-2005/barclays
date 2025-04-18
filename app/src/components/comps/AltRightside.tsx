@@ -8,7 +8,7 @@ interface Props {
 }
 const SecondOrganisationcreation:  React.FC<Props> = ({createorgtoggle,setorgtoggle}) => {
   return (
-    <div className="flex-1 bg-gradient-to-b from-white to-gray-50 p-4 md:p-8 lg:p-12">
+    <div className="flex-1 bg-gradient-to-b from-white to-gray-50 p-4 md:p-8 lg:p-12 h-screen overflow-x-hidden overflow-y-scroll ">
       <div className="w-full max-w-6xl mx-auto">
         {/* Logo Section */}
         <div className="">
