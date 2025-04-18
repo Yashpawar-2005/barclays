@@ -1,0 +1,6 @@
+docling needs images to do its thing
+so the first thing we should do is convert a document to images
+for pdfs
+pdf ->images -> docling
+docx -> pdf -> docling
+images->docling
