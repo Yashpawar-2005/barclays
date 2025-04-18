@@ -30,7 +30,7 @@ export const signup= async (req: Request, res: Response): Promise<void> => {
                 email: email,
                 password: hashedPassword
                 }});
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET_KEY||"BARCLAYS", {expiresIn: "10h"});
+    const token = jwt.sign({userId: user.id }, process.env.JWT_SECRET_KEY||"BARCLAYS", {expiresIn: "10h"});
      
         res.status(200).json({ message: "Signin successful", token ,user: user });
 

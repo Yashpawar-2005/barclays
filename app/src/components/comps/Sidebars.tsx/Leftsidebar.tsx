@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Button } from '../ui/button';
-import { Card, CardContent } from '../ui/card';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
+import { Button } from '../../ui/button';
+import { Card, CardContent } from '../../ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../ui/collapsible';
 import { Plus, ChevronDown, ChevronRight, Users, Settings, Shield, Menu, X, Building } from 'lucide-react';
-import { useUserStore } from '../../services/auth.service';
-import { api } from '../../services/axios';
+import { useUserStore } from '../../../services/auth.service';
+import { Link } from 'react-router-dom';
+import { api } from '../../../services/axios';
 
 interface User {
   id: number;
@@ -111,7 +112,6 @@ const OrganizationSidebar:  React.FC<Props> = ({createorgtoggle,setorgtoggle}) =
 
   return (
     <>
-      {/* Mobile toggle button */}
       {!sidebarOpen && (
         <div className="md:hidden fixed top-4 left-4 z-40">
           <Button 
@@ -142,7 +142,7 @@ const OrganizationSidebar:  React.FC<Props> = ({createorgtoggle,setorgtoggle}) =
         shadow-lg md:shadow-md
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
-        {/* Mobile header */}
+       
         <div className="md:hidden flex items-center justify-between p-4 border-b border-gray-200">
           <h2 className="font-medium text-black">Organizations</h2>
           <Button 
@@ -210,13 +210,19 @@ const OrganizationSidebar:  React.FC<Props> = ({createorgtoggle,setorgtoggle}) =
                 <p className="text-sm text-gray-500 p-2">No admin organizations</p>
               ) : (
                 adminOrgs.map(org => (
-                  <Card key={org.id} className="bg-gray-50 hover:bg-gray-100 border-gray-200 cursor-pointer transition-colors">
-                    <CardContent className="flex items-center gap-2 p-3 text-sm">
-                      <Shield size={16} className="text-blue-500" />
-                      <span className="text-black font-medium truncate">{org.name}</span>
-                    </CardContent>
-                  </Card>
+                  <Link to={`/org/${org.id}`} key={org.id}>
+                    <Card className="bg-white border border-gray-200 hover:shadow-sm transition-shadow rounded-lg">
+                      <CardContent className="flex items-center gap-3 px-4 py-2">
+                        <Shield size={16} className="text-blue-600 flex-shrink-0" />
+                        <div className="flex flex-col overflow-hidden">
+                          <span className="text-sm font-medium text-black truncate">{org.name}</span>
+                          <span className="text-xs text-gray-500">Admin Access</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
                 ))
+                
               )}
             </CollapsibleContent>
           </Collapsible>
@@ -239,14 +245,21 @@ const OrganizationSidebar:  React.FC<Props> = ({createorgtoggle,setorgtoggle}) =
                 <p className="text-sm text-gray-500 p-2">No member organizations</p>
               ) : (
                 memberOrgs.map(org => (
-                  <Card key={org.id} className="bg-gray-50 hover:bg-gray-100 border-gray-200 cursor-pointer transition-colors">
-                    <CardContent className="flex items-center gap-2 p-3 text-sm">
-                      {getRoleIcon(org.role)}
-                      <span className="text-black font-medium truncate">{org.name}</span>
-                      <span className="ml-auto text-xs text-blue-500 capitalize">{org.role}</span>
-                    </CardContent>
-                  </Card>
+                  <Link to={`/org/${org.id}`} key={org.id}>
+                    <Card className="bg-white border border-gray-200 hover:shadow-sm transition-shadow rounded-lg">
+                      <CardContent className="flex items-center gap-3 px-4 py-2">
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {getRoleIcon(org.role)}
+                        </div>
+                        <div className="flex flex-col overflow-hidden">
+                          <span className="text-sm font-medium text-black truncate">{org.name}</span>
+                          <span className="text-xs text-gray-500 capitalize">Role: {org.role}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
                 ))
+                
               )}
             </CollapsibleContent>
           </Collapsible>
