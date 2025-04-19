@@ -91,14 +91,7 @@ const OrganizationSidebar:  React.FC<Props> = ({setorgtoggle}) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const getRoleIcon = (role: string) => {
-    switch(role) {
-      case 'admin': return <Shield size={16} className="text-blue-500" />;
-      case 'editor': return <Settings size={16} className="text-gray-600" />;
-      case 'member': return <Users size={16} className="text-gray-600" />;
-      default: return <Users size={16} className="text-gray-400" />;
-    }
-  };
+ 
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
