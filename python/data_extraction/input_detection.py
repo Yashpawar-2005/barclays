@@ -1,6 +1,6 @@
 import os
 from flask import Flask,request,jsonify,Blueprint
-from ocr import *
+from .ocr import *
 from flask_cors import CORS
 
 app_bp = Blueprint("data_extraction",__name__)
@@ -15,13 +15,13 @@ def get_uploaded_docs():
         if not type or file_path:
             return jsonify({'err','type or file not found'}),400
 
-        text = []
+        text  = ""
         if type=='image':
-            text.extend(extract_img_content(file_path))
+            text+=(extract_img_content(file_path))
         elif type=='word':
-            text.extend(extract_word_content(file_path))
+            text+=(extract_word_content(file_path))
         elif type=='pdf':
-            text.extend(extract_pdf_content(file_path))
+            text+=(extract_pdf_content(file_path))
         else:
             return jsonify({'err':f'unsupported file format recieved :{type}'}),400
         

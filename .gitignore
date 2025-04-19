@@ -124,11 +124,14 @@ out/
 *.expo
 metro-cache/
 
-#Python
+# Python
 __pycache__
 docling_testing.py
 getting_docling_working.txt
 huggingface_steps.txt
+pymupdf_testing.py
 
-#Misc
+# Misc
 docs
+output.txt
+termsheet.csv
