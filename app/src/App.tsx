@@ -5,6 +5,7 @@ import LoginPage from "./pages/auth/LoginPage"
 import { useUserStore } from "./services/auth.service";
 import Organisationpage from "./pages/Mainpages/Organisationpage";
 import Orgid from "./pages/Organisationpage/Orgid";
+import PAGE from "./pages/Organisationpage/PAGE";
 export default function App() {
   const { user} = useUserStore();
   return (
@@ -22,6 +23,10 @@ export default function App() {
       <Route
         path="/org/:id"
         element={user ?<Orgid/>:<Navigate to="/"/>}
+      />
+        <Route
+        path="/termsheet/:id/:termsheetid"
+        element={user ?<PAGE/>:<Navigate to="/"/>}
       />
     </Routes>
 

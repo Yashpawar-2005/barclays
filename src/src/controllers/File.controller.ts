@@ -98,32 +98,46 @@ const function_to_upload = async (req: Request, res: Response): Promise<void> =>
   import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
   import { s3Client } from '../Helpers/S3.Upload';
 
-  const getfile=async (req: Request, res: Response) => {
-    const { key } = req.body;
-    console.log(key)
-    if (!key) {
-      return res.status(400).json({ error: 'Missing file key in URL' });
+  export const getfile = async (req: Request, res: Response) => {
+    const { termsheetid } = req.params;
+    const termsheetId=parseInt(termsheetid)
+    if (!termsheetId) {
+      res.status(400).json({ error: "Missing termsheetId in request body" });
+      return 
     }
-  
     try {
+      const termsheet = await prismaconnection.termsheet.findUnique({
+        where: { id: termsheetId },
+        include: {
+          ourtermsheetFile: true,
+        },
+      });
+  
+      if (!termsheet || !termsheet.ourtermsheetFile) {
+        res.status(404).json({ error: "No ourtermsheetFile found for the given termsheet" });
+        return 
+      }
+      const s3Link = termsheet.ourtermsheetFile.s3Link;
+      const bucket = process.env.AWS_S3_BUCKET!;
+      const url = new URL(s3Link);
+      const key = decodeURIComponent(url.pathname.slice(1)); 
       const command = new GetObjectCommand({
-        Bucket: process.env.AWS_S3_BUCKET!,
+        Bucket: bucket,
         Key: key,
       });
   
-      const signedUrl = await getSignedUrl(s3Client, command, {
-        expiresIn: 30000, 
-      });
-      console.log("returning")
-      return res.status(200).json({ url: signedUrl });
-    } catch (error: unknown) {
-      console.error('Error generating signed URL:', error);
+      const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 }); 
   
-      return res.status(500).json({
-        error: 'Failed to generate signed URL',
+      res.status(200).json({ url: signedUrl });
+      return 
+    } catch (error: unknown) {
+      console.error("Error generating signed URL:", error);
+      res.status(500).json({
+        error: "Failed to generate signed URL",
         message: (error as Error).message,
       });
+      return 
     }
-  }
+  };
   
-export  {function_to_upload,getfile}
+export  {function_to_upload}

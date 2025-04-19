@@ -61,6 +61,6 @@ const fileFiltera = (req: Request, file: Express.Multer.File, cb: multer.FileFil
 
 
 filerouter.post("/upload",authenticate,upload.single('file'),function_to_upload);
-//@ts-ignore
+filerouter.get("/termsheet/:termsheetid",authenticate,getfile)
 filerouter.post("/getfile",authenticate,getfile)
 export default filerouter

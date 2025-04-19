@@ -27,7 +27,7 @@ interface Props {
   setorgtoggle:  React.Dispatch<React.SetStateAction<boolean>>
 }
 
-const OrganizationSidebar:  React.FC<Props> = ({createorgtoggle,setorgtoggle}) => {
+const OrganizationSidebar:  React.FC<Props> = ({setorgtoggle}) => {
   const { user, logout } = useUserStore();
   const navigate = useNavigate();
   const [adminExpanded, setAdminExpanded] = useState<boolean>(false);
