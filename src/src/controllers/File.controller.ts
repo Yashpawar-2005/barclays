@@ -23,10 +23,7 @@ const EXTERNAL_API_URL = process.env.EXTERNAL_API_URL || 'http://your-backend-ap
 
 
 
-// File filter function
 
-
-// Forward file to external service
 const forwardFileToExternalService = async (file: Express.Multer.File, fileType: string) => {
   try {
     const formData = new FormData();
@@ -45,7 +42,6 @@ const forwardFileToExternalService = async (file: Express.Multer.File, fileType:
   }
 };
 
-// File upload endpoint
 const function_to_upload = async (req: Request, res: Response): Promise<void> => {
     try {
         console.log("hittin")
@@ -54,7 +50,6 @@ const function_to_upload = async (req: Request, res: Response): Promise<void> =>
           res.status(400).json({ error: 'No file uploaded' });
         return 
       }
-  
       const file = req.file;
       const fileType = detectFileType(file);
   
@@ -71,7 +66,7 @@ const function_to_upload = async (req: Request, res: Response): Promise<void> =>
       const externalResponse = await forwardFileToExternalService(file, fileType);
   
       fs.unlinkSync(file.path);
-  
+      
       res.status(201).json({
         message: 'File uploaded successfully',
         fileId: fileRecord.id,

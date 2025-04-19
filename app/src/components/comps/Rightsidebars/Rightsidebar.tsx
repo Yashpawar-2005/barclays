@@ -1,323 +1,26 @@
-import type React from "react"
-
+import { TermsheetDetailsCard } from "./termsheetinputs/TermsheetDetailCard"
 import { useState, useRef } from "react"
 import { Button } from "../../ui/button"
 import { Card } from "../../ui/card"
-import { Input } from "../../ui/input"
 import { Textarea } from "../../ui/textarea"
-import { ScrollArea } from "../../ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs"
-import { Avatar, AvatarFallback, AvatarImage } from "../../ui/avatar"
-import { Badge } from "../../ui/badge"
-import { Separator } from "../../ui/separator"
+import { TeamMemberSidebar } from "./termsheetinputs/teammembers"
+import { FileUploadArea } from "./termsheetinputs/FileUploadArea"
+import { EmailInfoForm } from "./termsheetinputs/Email"
 import { 
-  FileText, Upload, X, CheckCircle, Users, Mail, 
-  MessageSquare, Send, AlertCircle, Download,
-  Info, File, Calendar
+  FileText, Upload, CheckCircle,  Mail, 
+  MessageSquare, Send, Download,
+  Info
 } from "lucide-react"
+import { api } from "../../../services/axios"
 import { Alert, AlertDescription } from "../../ui/alert"
-
-// Types
 type Member = {
   id: string
   name: string
   role: string
   avatar?: string
-  status: "online" | "offline" | "away"
+  
 }
-
-// Props interfaces for component typing
-interface TermsheetDetailsCardProps {
-  termsheetName: string
-  setTermsheetName: (name: string) => void
-  termsheetDate: string
-  setTermsheetDate: (date: string) => void
-}
-
-interface FileUploadAreaProps {
-  file: File | null
-  setFile: (file: File | null) => void
-  isDragging: boolean
-  setIsDragging: (isDragging: boolean) => void
-  fileInputRef: React.RefObject<HTMLInputElement>
-  setTermsheetName: (name: string) => void
-}
-
-interface EmailInfoFormProps {
-  email: string
-  setEmail: (email: string) => void
-  orderId: string
-  setOrderId: (orderId: string) => void
-}
-
-interface TeamMemberSidebarProps {
-  members: Member[]
-}
-
-interface MemberItemProps {
-  member: Member
-}
-
-// Helper components
-const TermsheetDetailsCard: React.FC<TermsheetDetailsCardProps> = ({ 
-  termsheetName, 
-  setTermsheetName, 
-  termsheetDate, 
-  setTermsheetDate 
-}) => (
-  <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-100 mb-6">
-    <h3 className="text-base font-semibold text-slate-800 mb-4 flex items-center">
-      <File className="h-4 w-4 mr-2 text-slate-600" />
-      Termsheet Details
-    </h3>
-    <div className="grid grid-cols-2 gap-4">
-      <div>
-        <label htmlFor="termsheet-name" className="block text-sm font-medium text-slate-700 mb-2">
-          Termsheet Name *
-        </label>
-        <Input
-          id="termsheet-name"
-          placeholder="Enter termsheet name"
-          value={termsheetName}
-          onChange={(e) => setTermsheetName(e.target.value)}
-          className="w-full border-slate-300 focus:border-slate-500 focus:ring-slate-500"
-        />
-      </div>
-      <div>
-        <label htmlFor="termsheet-date" className="block text-sm font-medium text-slate-700 mb-2">
-          <Calendar className="h-3 w-3 inline-block mr-1 text-slate-500" />
-          Date (Optional)
-        </label>
-        <Input
-          id="termsheet-date"
-          type="date"
-          value={termsheetDate}
-          onChange={(e) => setTermsheetDate(e.target.value)}
-          className="w-full border-slate-300 focus:border-slate-500 focus:ring-slate-500"
-        />
-      </div>
-    </div>
-  </div>
-)
-
-const FileUploadArea: React.FC<FileUploadAreaProps> = ({ 
-  file, 
-  setFile, 
-  isDragging, 
-  setIsDragging, 
-  fileInputRef, 
-  setTermsheetName 
-}) => {
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0])
-
-      // If no termsheet name is provided, use the file name without extension
-      const fileName = e.target.files[0].name
-      const nameWithoutExtension = fileName.split(".").slice(0, -1).join(".")
-      setTermsheetName(nameWithoutExtension)
-    }
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
-
-  const handleDragLeave = () => {
-    setIsDragging(false)
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setFile(e.dataTransfer.files[0])
-
-      // If no termsheet name is provided, use the file name without extension
-      const fileName = e.dataTransfer.files[0].name
-      const nameWithoutExtension = fileName.split(".").slice(0, -1).join(".")
-      setTermsheetName(nameWithoutExtension)
-    }
-  }
-
-  const removeFile = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    setFile(null)
-  }
-
-  return (
-    <div className="flex-1 flex flex-col">
-      <label className="block text-sm font-medium text-slate-700 mb-2">Upload Termsheet Document</label>
-      <div
-        className={`border-2 border-dashed rounded-lg flex-1 flex flex-col items-center justify-center p-12 transition-colors ${
-          isDragging ? "border-slate-500 bg-slate-50" : "border-slate-300"
-        }`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          className="hidden"
-          accept=".pdf,.docx,.doc"
-        />
-
-        {!file ? (
-          <>
-            <div className="bg-slate-100 p-6 rounded-full mb-6">
-              <Upload className="h-10 w-10 text-slate-500" />
-            </div>
-            <p className="text-lg text-center text-slate-800 mb-2 font-medium">
-              Drag and drop your termsheet here
-            </p>
-            <p className="text-sm text-center text-slate-500 mb-6">or click to browse your files</p>
-            <Badge variant="outline" className="text-xs py-1 px-3 border-slate-300">
-              Supports PDF, DOCX
-            </Badge>
-          </>
-        ) : (
-          <div className="w-full flex flex-col items-center">
-            <div className="bg-slate-100 p-5 rounded-full mb-6">
-              <CheckCircle className="h-10 w-10 text-green-600" />
-            </div>
-            <div className="flex items-center justify-between w-full max-w-lg bg-slate-50 p-5 rounded-lg border border-slate-200">
-              <div className="flex items-center space-x-4">
-                <FileText className="h-10 w-10 text-slate-700" />
-                <div>
-                  <p className="text-base font-medium text-slate-900">{file.name}</p>
-                  <p className="text-sm text-slate-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={removeFile}
-                className="hover:bg-slate-200"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-const EmailInfoForm: React.FC<EmailInfoFormProps> = ({ email, setEmail, orderId, setOrderId }) => (
-  <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-100">
-    <h3 className="text-base font-semibold text-slate-800 mb-4 flex items-center">
-      <Mail className="h-4 w-4 mr-2 text-slate-600" />
-      Email Information
-    </h3>
-    <div className="space-y-4">
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
-          Email Address *
-        </label>
-        <Input
-          id="email"
-          type="email"
-          placeholder="Enter email address containing termsheet"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full border-slate-300 focus:border-slate-500 focus:ring-slate-500"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="order-id" className="block text-sm font-medium text-slate-700 mb-2">
-          Order ID *
-        </label>
-        <Input
-          id="order-id"
-          placeholder="Enter order ID"
-          value={orderId}
-          onChange={(e) => setOrderId(e.target.value)}
-          className="w-full border-slate-300 focus:border-slate-500 focus:ring-slate-500"
-        />
-      </div>
-    </div>
-  </div>
-)
-
-const TeamMemberSidebar: React.FC<TeamMemberSidebarProps> = ({ members }) => {
-  const getStatusColor = (status: Member["status"]) => {
-    switch (status) {
-      case "online": return "bg-green-500"
-      case "away": return "bg-yellow-500"
-      case "offline": return "bg-gray-400"
-    }
-  }
-
-  const MemberItem: React.FC<MemberItemProps> = ({ member }) => (
-    <div className={`flex items-center p-3 rounded-md hover:bg-slate-100 transition-colors ${member.status === "offline" ? "opacity-60" : ""}`}>
-      <div className="relative">
-        <Avatar className="h-10 w-10 border border-slate-200">
-          <AvatarImage src={member.avatar || "/placeholder.svg"} alt={member.name} />
-          <AvatarFallback className="bg-slate-200 text-slate-600">{member.name.charAt(0)}</AvatarFallback>
-        </Avatar>
-        <span
-          className={`absolute bottom-0 right-0 h-3 w-3 rounded-full ring-2 ring-white ${getStatusColor(member.status)}`}
-        />
-      </div>
-      <div className="ml-3">
-        <p className="text-sm font-medium text-slate-800">{member.name}</p>
-        <p className="text-xs text-slate-500">{member.role}</p>
-      </div>
-    </div>
-  )
-
-  const onlineMembers = members.filter(m => m.status === "online" || m.status === "away")
-  const offlineMembers = members.filter(m => m.status === "offline")
-
-  return (
-    <div className="w-80 border-l border-slate-200 bg-white flex flex-col shadow-inner">
-      <div className="p-5 border-b border-slate-200 bg-white">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-800 flex items-center">
-            <Users className="h-4 w-4 mr-2 text-slate-500" />
-            Team Members
-          </h3>
-          <Badge variant="outline" className="text-xs border-slate-300">
-            {members.length}
-          </Badge>
-        </div>
-      </div>
-
-      <ScrollArea className="flex-1">
-        <div className="p-4">
-          <div className="mb-4">
-            <h4 className="text-xs uppercase text-slate-500 font-semibold mb-2 tracking-wider">Active Now</h4>
-            <Separator className="bg-slate-100" />
-          </div>
-          <div className="space-y-2">
-            {onlineMembers.map((member) => (
-              <MemberItem key={member.id} member={member} />
-            ))}
-          </div>
-
-          <div className="mt-6 mb-4">
-            <h4 className="text-xs uppercase text-slate-500 font-semibold mb-2 tracking-wider">Offline</h4>
-            <Separator className="bg-slate-100" />
-          </div>
-          <div className="space-y-2">
-            {offlineMembers.map((member) => (
-              <MemberItem key={member.id} member={member} />
-            ))}
-          </div>
-        </div>
-      </ScrollArea>
-    </div>
-  )
-}
-
-// Main component
 export function TermsheetSection() {
   const [activeTab, setActiveTab] = useState("upload")
   const [termsheetName, setTermsheetName] = useState("")
@@ -330,58 +33,45 @@ export function TermsheetSection() {
   const [extractionSuccess, setExtractionSuccess] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [members, setMembers] = useState<Member[]>([])
 
-  // Sample members data - in a real app, this would come from your backend
-  const members: Member[] = [
-    {
-      id: "1",
-      name: "Alex Johnson",
-      role: "Deal Lead",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "online",
-    },
-    { id: "2", name: "Sarah Williams", role: "Legal", avatar: "/placeholder.svg?height=40&width=40", status: "online" },
-    { id: "3", name: "Michael Chen", role: "Finance", avatar: "/placeholder.svg?height=40&width=40", status: "away" },
-    {
-      id: "4",
-      name: "Emma Davis",
-      role: "Compliance",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "offline",
-    },
-  ]
-
+  
   const handleUploadSubmit = async () => {
-    if (!file || !termsheetName.trim()) {
-      alert("Please provide both a termsheet name and upload a file.")
+    console.log("hi")
+    if (!file) {
+      alert("Please select a file to upload.")
       return
     }
-
-    // Here you would implement the logic to send the termsheet to the backend
+  
     const formData = new FormData()
-    formData.append("termsheetName", termsheetName)
-    formData.append("termsheetDate", termsheetDate)
-    formData.append("file", file)
-
-    console.log("Submitting termsheet:", { name: termsheetName, date: termsheetDate, file })
-    alert("Termsheet uploaded successfully!")
+    formData.append("file", file) 
+  
+    try {
+      const res = await api.post("/file/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      })
+  
+      console.log("Upload success:", res.data)
+      alert("File uploaded successfully!")
+      setFile(null)
+    } catch (error) {
+      console.error("File upload failed:", error)
+      alert("Failed to upload file. Please try again.")
+    }
   }
+  
 
   const handleEmailExtraction = async () => {
     if (!email.trim() || !orderId.trim() || !termsheetName.trim()) {
       alert("Please provide email, order ID, and termsheet name to extract termsheet.")
       return
     }
-
-    // Simulate API call to backend for extraction
     setIsExtracting(true)
-    
-    // Simulate API delay
     setTimeout(() => {
       setIsExtracting(false)
       setExtractionSuccess(true)
-      
-      // Reset after showing success for 3 seconds
       setTimeout(() => {
         setExtractionSuccess(false)
         setEmail("")
@@ -398,19 +88,15 @@ export function TermsheetSection() {
       return
     }
 
-    // Here you would implement the logic to send the termsheet content to the backend
     console.log("Submitting direct termsheet:", { 
       name: termsheetName,
       date: termsheetDate,
       content: directTermsheetContent 
     })
     alert("Termsheet content submitted successfully!")
-    
-    // Reset fields after submission
     setDirectTermsheetContent("")
   }
 
-  // Render tab content components
   const renderUploadTabContent = () => (
     <TabsContent value="upload" className=" space-y-6">
       <FileUploadArea 
@@ -574,7 +260,7 @@ export function TermsheetSection() {
             </div>
 
             {/* Team members sidebar */}
-            <TeamMemberSidebar members={members} />
+            <TeamMemberSidebar members={members} setmembers={setMembers}/>
           </div>
         </div>
       </Card>
