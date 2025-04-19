@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { api } from "../../../services/axios"
 import { Alert, AlertDescription } from "../../ui/alert"
+import { useParams } from "react-router-dom"
 type Member = {
   id: string
   name: string
@@ -34,7 +35,7 @@ export function TermsheetSection() {
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [members, setMembers] = useState<Member[]>([])
-
+  const {id}=useParams();
   
   const handleUploadSubmit = async () => {
     console.log("hi")
@@ -44,7 +45,9 @@ export function TermsheetSection() {
     }
   
     const formData = new FormData()
-    formData.append("file", file) 
+    formData.append("file", file)
+    formData.append("termsheetName", termsheetName)
+    formData.append("id", id || "")
   
     try {
       const res = await api.post("/file/upload", formData, {
@@ -178,12 +181,12 @@ export function TermsheetSection() {
           Termsheet Content *
         </label>
         <Textarea
-          id="direct-termsheet-content"
-          placeholder="Enter or paste termsheet content directly here..."
-          value={directTermsheetContent}
-          onChange={(e) => setDirectTermsheetContent(e.target.value)}
-          className="flex-1 min-h-[300px] resize-none border-slate-300 focus:border-slate-500 focus:ring-slate-500"
-        />
+  id="direct-termsheet-content"
+  placeholder="Enter or paste termsheet content directly here..."
+  value={directTermsheetContent}
+  onChange={(e) => setDirectTermsheetContent(e.target.value)}
+  className="flex-1 min-h-[300px] max-h-[300px] overflow-y-scroll resize-none border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+/>
       </div>
 
       <Alert className="border-blue-100 bg-blue-50 p-4">

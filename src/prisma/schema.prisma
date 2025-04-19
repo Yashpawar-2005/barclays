@@ -25,6 +25,7 @@ model Organisation {
   id              Int               @id @default(autoincrement())
   name            String
   Termsheetname   String?
+  status          String? @default("not uploaded")
   senderemail     String?
   users           UserOrganisation[]
   termsheets      Termsheet[]
@@ -40,14 +41,20 @@ model UserOrganisation {
 } 
 
 model Termsheet {
-  id              Int           @id @default(autoincrement())
-  title           String
-  description     String?
-  organisationId  Int
-  s3Link          String        
-  status          Status  
-  organisation    Organisation  @relation(fields: [organisationId], references: [id])
-  discrepancies   Discrepancy[] 
+  id                   Int           @id @default(autoincrement())
+  title                String
+  description          String?
+  mapsheetFileId       Int?
+  structuredsheetFileId Int?
+  ourtermsheetFileId   Int?
+  validatedsheetFileId Int?
+  organisationId       Int
+  mapsheetFile         File?         @relation("MapsheetFile", fields: [mapsheetFileId], references: [id])
+  structuredsheetFile  File?         @relation("StructuredsheetFile", fields: [structuredsheetFileId], references: [id])
+  ourtermsheetFile     File?         @relation("OurtermsheetFile", fields: [ourtermsheetFileId], references: [id])
+  validatedsheetFile   File?         @relation("ValidatedsheetFile", fields: [validatedsheetFileId], references: [id])
+  organisation         Organisation  @relation(fields: [organisationId], references: [id])
+  discrepancies        Discrepancy[]
 }
 
 model Discrepancy {
@@ -57,16 +64,12 @@ model Discrepancy {
   termsheetId     Int
   termsheet       Termsheet     @relation(fields: [termsheetId], references: [id])
 }
-model file{
-  id Int @id @default(autoincrement())
-  s3Link String
-  type String
-}
-
-
-enum Status {
-  structured
-  validated
-  rejected
-  accepted
+model File {
+  id                  Int         @id @default(autoincrement())
+  s3Link              String
+  type                String?
+  mapsheetTermsheets  Termsheet[] @relation("MapsheetFile")
+  structuredTermsheets Termsheet[] @relation("StructuredsheetFile")
+  ourtermTermsheets   Termsheet[] @relation("OurtermsheetFile")  
+  validatedTermsheets Termsheet[] @relation("ValidatedsheetFile")
 }

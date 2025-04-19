@@ -6,7 +6,7 @@ interface Props {
   createorgtoggle: boolean;
   setorgtoggle:  React.Dispatch<React.SetStateAction<boolean>>
 }
-const SecondOrganisationcreation:  React.FC<Props> = ({createorgtoggle,setorgtoggle}) => {
+const SecondOrganisationcreation:  React.FC<Props> = ({setorgtoggle}) => {
   return (
     <div className="flex-1 bg-gradient-to-b from-white to-gray-50 p-4 md:p-8 lg:p-12 h-screen overflow-x-hidden overflow-y-scroll ">
       <div className="w-full max-w-6xl mx-auto">

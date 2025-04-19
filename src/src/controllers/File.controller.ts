@@ -44,8 +44,10 @@ const forwardFileToExternalService = async (file: Express.Multer.File, fileType:
 
 const function_to_upload = async (req: Request, res: Response): Promise<void> => {
     try {
-        console.log("hittin")
-        console.log(req.file)
+        // console.log("hittin")
+        // console.log(req.body)
+        // console.log(req.file)
+      
       if (!req.file) {
           res.status(400).json({ error: 'No file uploaded' });
         return 
@@ -57,6 +59,8 @@ const function_to_upload = async (req: Request, res: Response): Promise<void> =>
   
       const fileRecord = await saveFileRecord({
         fileName: file.originalname,
+        termsheetname:req.body.termsheetName,
+        orgid:parseInt(req.body.id),
         fileType,
         fileSize: file.size,
         s3Url: s3Result.Location,
@@ -69,7 +73,7 @@ const function_to_upload = async (req: Request, res: Response): Promise<void> =>
       
       res.status(201).json({
         message: 'File uploaded successfully',
-        fileId: fileRecord.id,
+        fileId: fileRecord,
         url: s3Result.Location,
         externalServiceResponse: externalResponse
       });

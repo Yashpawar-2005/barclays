@@ -1,30 +1,41 @@
 import prismaconnection from "../db/prisma";
+
 const saveFileRecord = async (fileData: {
     fileName: string;
     fileType: string;
     fileSize: number;
     s3Url: string;
+    termsheetname: string,
+    orgid: number,
     mimeType: string;
   }) => {
     try {
+      // First, create the File record
       const fileRecord = await prismaconnection.file.create({
         data: {
-        //   fileName: fileData.fileName,
-        //   fileType: fileData.fileType,
-        //   fileSize: fileData.fileSize,
-          type:fileData.fileType,
-          s3Link: fileData.s3Url
-        //   s3Key: fileData.s3Key,
-        //   mimeType: fileData.mimeType,
-        //   uploadedAt: new Date()
+          s3Link: fileData.s3Url,
+          type: fileData.fileType
+        }
+      });
+      console.log(fileRecord)
+      console.log(fileData)
+      const termsheet = await prismaconnection.termsheet.create({
+        data: {
+          title: fileData.termsheetname,
+          organisationId: fileData.orgid,
+          //@ts-ignore
+          ourtermsheetFileId: fileRecord.id
         }
       });
       
-      return fileRecord;
+      return {
+        // termsheet,
+        fileRecord
+      };
     } catch (error) {
       console.error('Prisma error:', error);
       throw error;
     }
   };
 
-export default saveFileRecord
+export default saveFileRecord;
