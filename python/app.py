@@ -1,12 +1,29 @@
 from flask import Flask
-from data_extraction import input_detection
 from data_structurization import structure_data
-from flask_cors import CORS
+from config import *
 
+from flask_cors import CORS
+import os
+from dotenv import load_dotenv
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import MetaData
+load_dotenv()
 app = Flask(__name__)
 CORS(app=app,supports_credentials=True)
 
-app.register_blueprint(input_detection.app_bp)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
+
+def reflect_tables():
+    with app.app_context():
+        metadata.reflect(bind=db.engine)
+        tables.update(metadata.tables)
+
+reflect_tables()
+
+
 app.register_blueprint(structure_data.app_bp)
 
 if __name__ == "__main__":

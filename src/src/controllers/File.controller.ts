@@ -8,8 +8,6 @@ import fs from 'fs';
 import uploadToS3 from '../Helpers/S3.Upload';
 import axios from 'axios';
 import detectFileType from '../Helpers/Detectfiletype';
-import FormData from 'form-data';
-
 AWS.config.update({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -18,23 +16,19 @@ AWS.config.update({
 
 
 
-const EXTERNAL_API_URL = process.env.EXTERNAL_API_URL || 'http://your-backend-api.com/process';
+const EXTERNAL_API_URL = process.env.EXTERNAL_API_URL || 'http://127.0.0.1:5000/py/structure_data';
 
 
 
 
 
-const forwardFileToExternalService = async (file: Express.Multer.File, fileType: string) => {
+const forwardFileToExternalService = async (termsheet_id:number) => {
   try {
-    const formData = new FormData();
-    formData.append('file', fs.createReadStream(file.path));
-    formData.append('fileType', fileType);
-    
-    const response = await axios.post(EXTERNAL_API_URL, formData, {
-      maxBodyLength: Infinity,
-      maxContentLength: Infinity
+    const response = await axios.post(EXTERNAL_API_URL, {termsheet_id},{
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
-    
     return response.data;
   } catch (error) {
     console.error('Error forwarding file to external service:', error);
@@ -67,7 +61,7 @@ const function_to_upload = async (req: Request, res: Response): Promise<void> =>
         mimeType: file.mimetype
       });
   
-      // const externalResponse = await forwardFileToExternalService(file, fileType);
+      
   
       fs.unlinkSync(file.path);
       
@@ -90,7 +84,7 @@ const function_to_upload = async (req: Request, res: Response): Promise<void> =>
 
 const function_to_upload_structured_sheet= async (req: Request, res: Response): Promise<void> => {
     try {
-      console.log(req)
+      // console.log(req)
       if (!req.file) {
           res.status(400).json({ error: 'No file uploaded' });
         return 
@@ -107,10 +101,9 @@ const function_to_upload_structured_sheet= async (req: Request, res: Response): 
         fileSize: file.size,
         s3Url: s3Result.Location,
         mimeType: file.mimetype
-      });
-      
-      const externalResponse = await forwardFileToExternalService(file, fileType);
-  
+      });      
+      const externalResponse = await forwardFileToExternalService(fileRecord.updatedTermsheet.id);
+      console.log(externalResponse)
       fs.unlinkSync(file.path);
       
       res.status(201).json({

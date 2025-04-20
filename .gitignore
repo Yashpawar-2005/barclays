@@ -135,3 +135,5 @@ pymupdf_testing.py
 docs
 output.txt
 termsheet.csv
+.temp
+temp_file.pdf

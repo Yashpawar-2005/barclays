@@ -21,7 +21,6 @@ def preprocess_data(doc):
     splitter = RecursiveCharacterTextSplitter(chunk_size=5000,chunk_overlap=100)
     content = doc.page_content
     chunks = splitter.split_text(content)
-
     DetectorFactory.seed = 0
     lang_dict = defaultdict(list)
     for chunk in chunks:
