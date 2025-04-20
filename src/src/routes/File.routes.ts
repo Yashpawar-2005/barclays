@@ -2,7 +2,7 @@ import { Router } from "express";
 import { Request } from 'express';
 
 import { authenticate } from "../middlewares/Authcheck";
-import {function_to_upload, getfile} from "../controllers/File.controller";
+import {function_to_upload, function_to_upload_structured_sheet, getfile, get_struct_file, get_Validated_File, get_discrepancies} from "../controllers/File.controller";
 import multer from "multer";
 import fs from 'fs'
 
@@ -61,6 +61,10 @@ const fileFiltera = (req: Request, file: Express.Multer.File, cb: multer.FileFil
 
 
 filerouter.post("/upload",authenticate,upload.single('file'),function_to_upload);
-filerouter.get("/termsheet/:termsheetid",authenticate,getfile)
+filerouter.post("/upload_structured",authenticate,upload.single('file'),function_to_upload_structured_sheet)
+filerouter.get("/termsheet/:organisationid",authenticate,getfile)
+filerouter.get("/validated_termsheet/:organisationid",authenticate,get_Validated_File)
+filerouter.get("/structured_termsheet/:organisationid",authenticate,get_struct_file);
+filerouter.get("termsheet/:organisationid/discrepancies",authenticate,get_discrepancies)
 filerouter.post("/getfile",authenticate,getfile)
 export default filerouter

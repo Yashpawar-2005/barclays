@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import AWS from 'aws-sdk';
-import saveFileRecord from '../Helpers/SaveFileRecord';
+import {saveFileRecord,saveStructuredFile} from '../Helpers/SaveFileRecord';
 import prismaconnection from '../db/prisma';
 import fs from 'fs';
 import uploadToS3 from '../Helpers/S3.Upload';
@@ -67,6 +67,48 @@ const function_to_upload = async (req: Request, res: Response): Promise<void> =>
         mimeType: file.mimetype
       });
   
+      // const externalResponse = await forwardFileToExternalService(file, fileType);
+  
+      fs.unlinkSync(file.path);
+      
+      res.status(201).json({
+        message: 'File uploaded successfully',
+        fileId: fileRecord,
+        url: s3Result.Location,
+        // externalServiceResponse: externalResponse
+      });
+      return 
+    } catch (error: any) {
+      console.error('Error processing file upload:', error);
+      res.status(500).json({
+          error: 'Failed to process file upload',
+          message: error.message
+        });
+        return
+    }
+  };
+
+const function_to_upload_structured_sheet= async (req: Request, res: Response): Promise<void> => {
+    try {
+      console.log(req)
+      if (!req.file) {
+          res.status(400).json({ error: 'No file uploaded' });
+        return 
+      }
+      const file = req.file;
+      const fileType = detectFileType(file);
+  
+      const s3Result = await uploadToS3(file);
+  
+      const fileRecord = await saveStructuredFile({
+        fileName: file.originalname,
+        orgid:parseInt(req.body.orgId),
+        fileType,
+        fileSize: file.size,
+        s3Url: s3Result.Location,
+        mimeType: file.mimetype
+      });
+      
       const externalResponse = await forwardFileToExternalService(file, fileType);
   
       fs.unlinkSync(file.path);
@@ -98,37 +140,51 @@ const function_to_upload = async (req: Request, res: Response): Promise<void> =>
   import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
   import { s3Client } from '../Helpers/S3.Upload';
 
-  export const getfile = async (req: Request, res: Response) => {
-    const { termsheetid } = req.params;
-    const termsheetId=parseInt(termsheetid)
-    if (!termsheetId) {
-      res.status(400).json({ error: "Missing termsheetId in request body" });
+  const getfile = async (req: Request, res: Response) => {
+    const { organisationid } = req.params;
+    console.log(organisationid)
+    const organisationId = parseInt(organisationid)
+    if (!organisationId) {
+      res.status(400).json({ error: "Missing organisationId in request body" });
       return 
     }
+  
     try {
-      const termsheet = await prismaconnection.termsheet.findUnique({
-        where: { id: termsheetId },
+     
+      const latestTermsheet = await prismaconnection.termsheet.findFirst({
+        where: {
+          organisationId,
+          ourtermsheetFileId: { not: null },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
         include: {
           ourtermsheetFile: true,
         },
       });
   
-      if (!termsheet || !termsheet.ourtermsheetFile) {
-        res.status(404).json({ error: "No ourtermsheetFile found for the given termsheet" });
+      if (!latestTermsheet || !latestTermsheet.ourtermsheetFile) {
+        res.status(404).json({ error: "No ourtermsheet file found for the organisation" });
         return 
       }
-      const s3Link = termsheet.ourtermsheetFile.s3Link;
+  
+      const s3Link = latestTermsheet.ourtermsheetFile.s3Link;
       const bucket = process.env.AWS_S3_BUCKET!;
       const url = new URL(s3Link);
-      const key = decodeURIComponent(url.pathname.slice(1)); 
-      const command = new GetObjectCommand({
-        Bucket: bucket,
-        Key: key,
+      const key = decodeURIComponent(url.pathname.slice(1)); // strip leading slash
+  
+      // Step 2: Generate the signed URL
+      const command = new GetObjectCommand({ Bucket: bucket, Key: key });
+      const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 });
+  
+      console.log(latestTermsheet.status,signedUrl,latestTermsheet.id)
+      // Include the status in the response
+      res.status(200).json({ 
+        url: signedUrl,
+        status: latestTermsheet.status,
+        termsheetId: latestTermsheet.id
       });
-  
-      const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 }); 
-  
-      res.status(200).json({ url: signedUrl });
       return 
     } catch (error: unknown) {
       console.error("Error generating signed URL:", error);
@@ -139,5 +195,218 @@ const function_to_upload = async (req: Request, res: Response): Promise<void> =>
       return 
     }
   };
+
+
+  const get_struct_file = async (req: Request, res: Response) => {
+    const { organisationid } = req.params;
+    console.log("get_struct_file");
+    const organisationId = parseInt(organisationid);
+    if (!organisationId) {
+      res.status(400).json({ error: "Missing organisationId in request body" });
+      return;
+    }
   
-export  {function_to_upload}
+    try {
+      const latestTermsheet = await prismaconnection.termsheet.findFirst({
+        where: {
+          organisationId,
+          structuredsheetFileId: { not: null },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          structuredsheetFile: true,
+        },
+      });
+  
+      if (!latestTermsheet || !latestTermsheet.structuredsheetFile) {
+        res.status(404).json({ error: "No structured sheet file found for the organisation" });
+        return;
+      }
+  
+      const s3Link = latestTermsheet.structuredsheetFile.s3Link;
+      const bucket = process.env.AWS_S3_BUCKET!;
+      const url = new URL(s3Link);
+      const key = decodeURIComponent(url.pathname.slice(1)); 
+  
+      // Generate the signed URL
+      const command = new GetObjectCommand({ Bucket: bucket, Key: key });
+      const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 });
+  
+      console.log(latestTermsheet.status, signedUrl, latestTermsheet.id);
+      
+      // Include the status in the response
+      res.status(200).json({ 
+        url: signedUrl,
+        status: latestTermsheet.status,
+        termsheetId: latestTermsheet.id
+      });
+      return;
+    } catch (error: unknown) {
+      console.error("Error generating signed URL for structured file:", error);
+      res.status(500).json({
+        error: "Failed to generate signed URL for structured file",
+        message: (error as Error).message,
+      });
+      return;
+    }
+  };
+
+  const get_Validated_File = async (req: Request, res: Response) => {
+    const { organisationid } = req.params;
+    console.log("get_validated_file");
+    console.log(organisationid);
+    const organisationId = parseInt(organisationid);
+    if (!organisationId) {
+      res.status(400).json({ error: "Missing organisationId in request body" });
+      return;
+    }
+  
+    try {
+      const latestTermsheet = await prismaconnection.termsheet.findFirst({
+        where: {
+          organisationId,
+          validatedsheetFileId: { not: null },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          validatedsheetFile: true,
+        },
+      });
+  
+      if (!latestTermsheet || !latestTermsheet.validatedsheetFile) {
+        res.status(404).json({ error: "No validated sheet file found for the organisation" });
+        return;
+      }
+  
+      const s3Link = latestTermsheet.validatedsheetFile.s3Link;
+      const bucket = process.env.AWS_S3_BUCKET!;
+      const url = new URL(s3Link);
+      const key = decodeURIComponent(url.pathname.slice(1)); // strip leading slash
+  
+      // Generate the signed URL
+      const command = new GetObjectCommand({ Bucket: bucket, Key: key });
+      const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 });
+  
+      console.log(latestTermsheet.status, signedUrl, latestTermsheet.id);
+      
+      // Include the status in the response
+      res.status(200).json({ 
+        url: signedUrl,
+        status: latestTermsheet.status,
+        termsheetId: latestTermsheet.id
+      });
+      return;
+    } catch (error: unknown) {
+      console.error("Error generating signed URL for validated file:", error);
+      res.status(500).json({
+        error: "Failed to generate signed URL for validated file",
+        message: (error as Error).message,
+      });
+      return;
+    }
+  };
+  
+  const get_discrepancies = async (req: Request, res: Response) => {
+    try {
+      const { organisationid } = req.params;
+      const userId = req.userId;
+      if(!userId){
+        res.status(401).json({message:"Unautherized"})
+        return
+      }
+      const userOrganization = await prismaconnection.userOrganisation.findUnique({
+        where: {
+          userId_organisationId: {
+            userId: parseInt(userId),
+            organisationId: parseInt(organisationid)
+          }
+        },
+        select: {
+          role: true
+        }
+      });
+  
+      if (!userOrganization) {
+        res.status(403).json({ 
+         success: false, 
+         message: 'User does not belong to this organization' 
+       });
+        return
+      }
+  
+      // Get the active termsheet for this organization
+      const termsheet = await prismaconnection.termsheet.findFirst({
+        where: {
+          organisationId: parseInt(organisationid),
+          status: { not: "COMPLETED" }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        },
+        select: {
+          id: true
+        }
+      });
+  
+      if (!termsheet) {
+        res.status(404).json({ 
+          success: false, 
+          message: 'No active termsheet found for this organization' 
+        });
+        return 
+      }
+  
+      // Check if user is admin
+      const isAdmin = userOrganization.role.toLowerCase() === 'admin';
+      
+      // Get discrepancies based on user role
+      const discrepancies = await prismaconnection.discrepancy.findMany({
+        where: {
+          termsheetId: termsheet.id,
+          ...(isAdmin 
+            ? {} 
+            : { role: userOrganization.role } 
+          )
+        },
+        select: {
+          id: true,
+          role: true,
+          //@ts-ignore
+          field: true,
+          content: true,
+          suggestion: true,
+          score: true,
+          acceptedbyrole: true,
+          acceptedbyadmin: true,
+          createdAt: true
+        }
+      });
+      const formattedDiscrepancies = discrepancies.map(disc => ({
+        ...disc,
+        //@ts-ignore
+        score: disc.score ? parseFloat(disc.score) : undefined
+      }));
+  
+      res.status(200).json({
+        success: true,
+        data: formattedDiscrepancies
+      });
+      return
+      
+    } catch (error:any) {
+      console.error('Error fetching discrepancies:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch discrepancies',
+        error: error.message
+      });
+      return 
+    }
+  };
+
+
+export  {function_to_upload , getfile, function_to_upload_structured_sheet,get_struct_file,get_Validated_File,get_discrepancies}

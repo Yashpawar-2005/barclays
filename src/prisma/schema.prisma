@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -18,6 +12,7 @@ model User {
   email           String            @unique
   name            String?           @unique
   password        String
+  createdAt       DateTime          @default(now())
   organisations   UserOrganisation[] 
 }
 
@@ -25,8 +20,9 @@ model Organisation {
   id              Int               @id @default(autoincrement())
   name            String
   Termsheetname   String?
-  status          String? @default("not uploaded")
+  status          String?           @default("not uploaded")
   senderemail     String?
+  createdAt       DateTime          @default(now())
   users           UserOrganisation[]
   termsheets      Termsheet[]
 }
@@ -35,8 +31,9 @@ model UserOrganisation {
   userId          Int
   organisationId  Int
   role            String 
-  user            User           @relation(fields: [userId], references: [id])
-  organisation    Organisation   @relation(fields: [organisationId], references: [id])
+  createdAt       DateTime          @default(now())
+  user            User              @relation(fields: [userId], references: [id])
+  organisation    Organisation      @relation(fields: [organisationId], references: [id])
   @@id([userId, organisationId]) 
 } 
 
@@ -45,10 +42,12 @@ model Termsheet {
   title                String
   description          String?
   mapsheetFileId       Int?
+  status               String @default("TO BE STRUCTURIZED")
   structuredsheetFileId Int?
   ourtermsheetFileId   Int?
   validatedsheetFileId Int?
   organisationId       Int
+  createdAt            DateTime      @default(now())
   mapsheetFile         File?         @relation("MapsheetFile", fields: [mapsheetFileId], references: [id])
   structuredsheetFile  File?         @relation("StructuredsheetFile", fields: [structuredsheetFileId], references: [id])
   ourtermsheetFile     File?         @relation("OurtermsheetFile", fields: [ourtermsheetFileId], references: [id])
@@ -59,15 +58,23 @@ model Termsheet {
 
 model Discrepancy {
   id              Int           @id @default(autoincrement())
-  role            String        
-  content         String      
+  role            String?  
+  score           String?      
+  content         String?
+  suggestion      String?
+  field           String?
+  acceptedbyrole  Boolean?
+  acceptedbyadmin Boolean?     
   termsheetId     Int
+  createdAt       DateTime      @default(now())
   termsheet       Termsheet     @relation(fields: [termsheetId], references: [id])
 }
+
 model File {
   id                  Int         @id @default(autoincrement())
   s3Link              String
   type                String?
+  createdAt           DateTime    @default(now())
   mapsheetTermsheets  Termsheet[] @relation("MapsheetFile")
   structuredTermsheets Termsheet[] @relation("StructuredsheetFile")
   ourtermTermsheets   Termsheet[] @relation("OurtermsheetFile")  

@@ -63,8 +63,6 @@ const SecondOrganisationcreation:  React.FC<Props> = ({setorgtoggle}) => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Action Section */}
         <Card className="bg-white border-gray-200 shadow-md overflow-hidden">
           <CardContent className="p-0">
             <div className="flex flex-col md:flex-row">

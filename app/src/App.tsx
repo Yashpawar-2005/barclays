@@ -25,7 +25,7 @@ export default function App() {
         element={user ?<Orgid/>:<Navigate to="/"/>}
       />
         <Route
-        path="/termsheet/:id/:termsheetid"
+        path="/termsheet/:orgid"
         element={user ?<PAGE/>:<Navigate to="/"/>}
       />
     </Routes>

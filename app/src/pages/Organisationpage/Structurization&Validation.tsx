@@ -9,14 +9,89 @@ import { Badge } from "../../components/ui/badge";
 import { Textarea } from "../../components/ui/textarea";
 import { Input } from "../../components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "../../components/ui/dialog";
-import { FileIcon, CheckIcon, AlertTriangleIcon, LoaderIcon } from "lucide-react";
+import { FileIcon, CheckIcon, AlertTriangleIcon, LoaderIcon, DownloadIcon,  FileTypeIcon } from "lucide-react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
 import { api } from "../../services/axios";
+//@ts-ignore
+const DocumentViewer = ({ url }) => {
+  const [fileType, setFileType] = useState("");
+
+  useEffect(() => {
+    if (!url) return;
+    
+    const detectFileType = () => {
+      const urlWithoutParams = url.split('?')[0].toLowerCase();
+      if (urlWithoutParams.endsWith('.pdf')) return 'pdf';
+      if (urlWithoutParams.endsWith('.jpg') || urlWithoutParams.endsWith('.jpeg') || urlWithoutParams.endsWith('.png') || urlWithoutParams.endsWith('.gif')) return 'image';
+      if (urlWithoutParams.endsWith('.docx') || urlWithoutParams.endsWith('.doc')) return 'word';
+      if (urlWithoutParams.endsWith('.xlsx') || urlWithoutParams.endsWith('.xls')) return 'excel';
+      if (urlWithoutParams.endsWith('.csv')) return 'csv';
+      return 'unknown';
+    };
+    
+    setFileType(detectFileType());
+  }, [url]);
+  const googleDocsViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+  const renderViewer = () => {
+    switch (fileType) {
+      case 'pdf':
+      case 'image':
+        return (
+          <iframe 
+            src={url} 
+            className="w-full h-full border-0" 
+            title="Document Viewer"
+          />
+        );
+      case 'word':
+      case 'excel':
+      case 'csv':
+        return (
+          <iframe 
+            src={googleDocsViewerUrl} 
+            className="w-full h-full border-0" 
+            title="Document Viewer"
+          />
+        );
+      case 'unknown':
+      default:
+        return (
+          <div className="w-full h-full flex flex-col items-center justify-center space-y-4 text-gray-600">
+            <FileTypeIcon size={48} />
+            <p>This file type may not be viewable in the browser</p>
+            <div className="flex flex-col items-center">
+              <p>Try using Google Docs Viewer:</p>
+              <iframe 
+                src={googleDocsViewerUrl} 
+                className="w-full h-64 border mt-2" 
+                title="Google Docs Viewer"
+              />
+            </div>
+            <a 
+              href={url} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="flex items-center space-x-2 px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800"
+            >
+              <DownloadIcon size={16} />
+              <span>Download File</span>
+            </a>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div className="aspect-auto h-[70vh] w-full">
+      {renderViewer()}
+    </div>
+  );
+};
 
 const TermsheetPage = () => {
-  const { termsheetid } = useParams();
-  const termsheetId = parseInt(termsheetid!)
+  const { orgid } = useParams();
+  const termsheetId = parseInt(orgid!)
   const [termsheetUrl, setTermsheetUrl] = useState("");
   const [termsheetContent, setTermsheetContent] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -31,11 +106,11 @@ const TermsheetPage = () => {
     const fetchTermsheetData = async () => {
       try {
         setIsLoading(true);
-        const response=await api.get(`/file/termsheet/${termsheetId}`)
+        const response = await api.get(`/file/termsheet/${orgid}`)
         const data = response.data;
         console.log(data)
-        setTermsheetUrl(data.mapsheets3Link || "");
-        setTermsheetContent(data.content || "");
+        setTermsheetUrl(data.url || "");
+        setTermsheetContent( "where is the content visisble");
         setTermsheetStatus(data.status || "");
         
         setIsLoading(false);
@@ -65,15 +140,15 @@ const TermsheetPage = () => {
         formData.append("file", fileToUpload);
       }
       formData.append("chatMessage", chatMessage);
-      formData.append("termsheetId", termsheetId.toString());
-      await axios.post(`/api/termsheets/${termsheetId}/structurize`, formData, {
+      formData.append("orgId", termsheetId.toString());
+      const res=await api.post(`/file/upload_structured`,formData,{
         headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      const updatedTermsheet = await axios.get(`/api/termsheets/${termsheetId}`);
-      setTermsheetUrl(updatedTermsheet.data.mapsheets3Link || "");
-      setTermsheetStatus(updatedTermsheet.data.status || "");
+          "Content-Type": "multipart/form-data",
+        },
+      })
+      console.log(res)
+      alert("structurized now validate it later")
+      setTermsheetStatus(res.data.fileId.updatedTermsheet.status|| "");
       setIsStructurizeDialogOpen(false);
       
     } catch (error) {
@@ -85,6 +160,7 @@ const TermsheetPage = () => {
   };
 
   const handleValidate = async () => {
+    //python ka backend hoga nigga yahape
     if (termsheetStatus !== "TO BE VALIDATED") {
       setError("This termsheet is not ready for validation");
       return;
@@ -105,13 +181,11 @@ const TermsheetPage = () => {
     }
   };
 
-  // Determine button state based on termsheet status
+  
   const isStructurizeButtonEnabled = termsheetStatus === "TO BE STRUCTURIZED";
   const isValidateButtonEnabled = termsheetStatus === "TO BE VALIDATED";
 
   const clearError = () => setError(null);
-
-  // Get human-readable status text
   const getStatusBadgeText = () => {
     switch(termsheetStatus) {
       case "TO BE STRUCTURIZED":
@@ -129,9 +203,7 @@ const TermsheetPage = () => {
 
   return (
     <div className="flex h-screen bg-white flex-1">
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
         <header className="border-b border-gray-200 bg-white p-4">
           <div className="flex justify-between items-center">
             <h1 className="text-xl font-semibold text-gray-900">Termsheet Viewer</h1>
@@ -213,8 +285,6 @@ const TermsheetPage = () => {
             </div>
           </div>
         </header>
-
-        {/* Status Indicators */}
         <div className="px-4 py-2 bg-gray-50 flex items-center space-x-4">
           <Badge 
             variant="outline" 
@@ -222,11 +292,20 @@ const TermsheetPage = () => {
           >
             {getStatusBadgeText()}
           </Badge>
+          
+          {termsheetUrl && (
+            <a 
+              href={termsheetUrl} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="flex items-center text-sm text-gray-600 hover:text-black"
+            >
+              <DownloadIcon className="h-4 w-4 mr-1" />
+              Download Original
+            </a>
+          )}
         </div>
-
-        {/* Main Content */}
         <div className="flex-1 overflow-hidden flex">
-          {/* Document Display */}
           <div className="flex-1 p-6 overflow-auto">
             {error && (
               <Alert variant="destructive" className="mb-4">
@@ -255,22 +334,12 @@ const TermsheetPage = () => {
                     <p className="text-sm text-gray-500">Status: {termsheetStatus}</p>
                   )}
                 </div>
-                
-                {/* Content area - always show original termsheet */}
                 <div className="prose max-w-none">
-                  <div>
-                    {termsheetUrl ? (
-                      <div className="aspect-auto h-[70vh] w-full">
-                        <iframe 
-                          src={termsheetUrl} 
-                          className="w-full h-full border-0" 
-                          title="Termsheet Document"
-                        />
-                      </div>
-                    ) : (
-                      <pre className="whitespace-pre-wrap font-sans">{termsheetContent}</pre>
-                    )}
-                  </div>
+                  {termsheetUrl ? (
+                    <DocumentViewer url={termsheetUrl} />
+                  ) : (
+                    <pre className="whitespace-pre-wrap font-sans">{termsheetContent}</pre>
+                  )}
                 </div>
               </Card>
             )}
