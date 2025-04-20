@@ -313,6 +313,7 @@ const function_to_upload_structured_sheet= async (req: Request, res: Response): 
   const get_discrepancies = async (req: Request, res: Response) => {
     try {
       const { organisationid } = req.params;
+      console.log(organisationid)
       const userId = req.userId;
       if(!userId){
         res.status(401).json({message:"Unautherized"})
@@ -353,7 +354,7 @@ const function_to_upload_structured_sheet= async (req: Request, res: Response): 
       });
   
       if (!termsheet) {
-        res.status(404).json({ 
+        res.status(300).json({ 
           success: false, 
           message: 'No active termsheet found for this organization' 
         });

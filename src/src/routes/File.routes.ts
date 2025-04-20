@@ -65,6 +65,6 @@ filerouter.post("/upload_structured",authenticate,upload.single('file'),function
 filerouter.get("/termsheet/:organisationid",authenticate,getfile)
 filerouter.get("/validated_termsheet/:organisationid",authenticate,get_Validated_File)
 filerouter.get("/structured_termsheet/:organisationid",authenticate,get_struct_file);
-filerouter.get("termsheet/:organisationid/discrepancies",authenticate,get_discrepancies)
+filerouter.get("/termsheet/discrepancies/:organisationid",authenticate,get_discrepancies)
 filerouter.post("/getfile",authenticate,getfile)
 export default filerouter

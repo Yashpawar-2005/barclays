@@ -165,33 +165,46 @@ const ValidationSheet = () => {
   const discrepancyCount = discrepancies.length
 
   useEffect(() => {
-    const fetchTermsheetData = async () => {
+    const fetchValidatedTermsheet = async () => {
       try {
         setIsLoading(true)
-        if (!termsheetId) {
-          throw new Error("Invalid termsheet ID")
-        }
-        
-        // Fetch termsheet document data
-        const termsheetResponse = await api.get(`/file/validated_termsheet/${orgid}`)
-        const termsheetData = termsheetResponse.data
-        setTermsheetUrl(termsheetData.url || "")
-        setTermsheetStatus(termsheetData.status || "")
-        const discrepanciesResponse = await api.get(`file/termsheet/${orgid}/discrepancies`)
-        setDiscrepancies(discrepanciesResponse.data || [])
-        
-        setIsLoading(false)
+        if (!termsheetId) throw new Error("Invalid termsheet ID")
+  
+        const response = await api.get(`/file/validated_termsheet/${orgid}`)
+        const data = response.data
+        setTermsheetUrl(data.url || "")
+        setTermsheetStatus(data.status || "")
       } catch (error) {
-        console.error("Error fetching data:", error)
-        setError("Failed to load termsheet data or discrepancies")
+        console.error("Error fetching termsheet:", error)
+        setError("Failed to load termsheet")
+      } finally {
         setIsLoading(false)
       }
     }
-    
+  
     if (termsheetId) {
-      fetchTermsheetData()
+      fetchValidatedTermsheet()
     }
   }, [termsheetId, orgid])
+  
+  useEffect(() => {
+    const fetchDiscrepancies = async () => {
+      try {
+        console.log("HI")
+        const response = await api.get(`/file/termsheet/discrepancies/${orgid}`)
+        console.log(response)
+        setDiscrepancies(response.data.data || [])
+      } catch (error) {
+        console.error("Error fetching discrepancies:", error)
+        setError("Failed to load discrepancies")
+      }
+    }
+  
+    if (termsheetId) {
+      fetchDiscrepancies()
+    }
+  }, [termsheetId, orgid])
+  
 
   const handleAcceptDiscrepancy = async (id: string) => {
     try {
@@ -199,7 +212,7 @@ const ValidationSheet = () => {
       // Make API call to accept the discrepancy
       await api.post(`/termsheet/${orgid}/discrepancies/${id}/accept`)
       
-      // Update local state after successful API call
+     
       setDiscrepancies((prevDiscrepancies) => prevDiscrepancies.filter((d) => d.id !== id))
       setIsActionInProgress(false)
     } catch (error) {

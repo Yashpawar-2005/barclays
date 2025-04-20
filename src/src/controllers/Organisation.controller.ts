@@ -282,12 +282,11 @@ export const createOrganizationWithUsers = async (req: Request, res: Response) =
       let userId = user.id;
 
       if (!existingUser) {
-        // Create a new user if not existing
         const newUser = await prismaconnection.user.create({
           data: {
             name: user.name,
-            email: user.email, // Ensure email is unique if provided
-            password: 'defaultPassword' // Handle password securely
+            email: user.email, 
+            password: 'defaultPassword'
           },
         });
         userId = newUser.id;
