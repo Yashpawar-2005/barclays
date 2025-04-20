@@ -53,7 +53,7 @@ def prepare_table_comparison_prompt(path1: str, path2: str) -> str:
         "The suggestion column should contain the suggestion to fix the discrepancy.\n\n"
         "The match/discrepancy column should contain 'Match' if the values are the same, and 'Discrepancy' if they are different.\n\n"
         "The severity score should be a number between 1 and 10, where 1 is the least severe and 10 is the most severe.\n\n"
-        "The CSV should not contain any headers or footers, only the data.\n\n"
+        
         "ONLY GIVE RAW CSV TEXT. DO NOT GIVE ANY OTHER TEXT OR EXPLANATION.\n\n"
     )
     return prompt
