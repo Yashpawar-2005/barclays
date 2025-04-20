@@ -313,65 +313,62 @@ const function_to_upload_structured_sheet= async (req: Request, res: Response): 
   const get_discrepancies = async (req: Request, res: Response) => {
     try {
       const { organisationid } = req.params;
-      console.log(organisationid)
       const userId = req.userId;
-      if(!userId){
-        res.status(401).json({message:"Unautherized"})
-        return
+  
+      if (!userId) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
       }
+  
       const userOrganization = await prismaconnection.userOrganisation.findUnique({
         where: {
           userId_organisationId: {
             userId: parseInt(userId),
-            organisationId: parseInt(organisationid)
-          }
+            organisationId: parseInt(organisationid),
+          },
         },
         select: {
-          role: true
-        }
+          role: true,
+        },
       });
   
       if (!userOrganization) {
-        res.status(403).json({ 
-         success: false, 
-         message: 'User does not belong to this organization' 
-       });
-        return
+        res.status(403).json({
+          success: false,
+          message: 'User does not belong to this organization',
+        });
+        return;
       }
   
-      // Get the active termsheet for this organization
+      const role = userOrganization.role;
+      const isAdmin = role.toLowerCase() === 'admin';
+  
       const termsheet = await prismaconnection.termsheet.findFirst({
         where: {
           organisationId: parseInt(organisationid),
-          status: { not: "COMPLETED" }
+          status: { not: "COMPLETED" },
         },
         orderBy: {
-          createdAt: 'desc'
+          createdAt: 'desc',
         },
         select: {
-          id: true
-        }
+          id: true,
+        },
       });
   
       if (!termsheet) {
-        res.status(300).json({ 
-          success: false, 
-          message: 'No active termsheet found for this organization' 
+        res.status(300).json({
+          success: false,
+          message: 'No active termsheet found for this organization',
+          role, // even in fallback, return the role
         });
-        return 
+        return;
       }
   
-      // Check if user is admin
-      const isAdmin = userOrganization.role.toLowerCase() === 'admin';
-      
-      // Get discrepancies based on user role
       const discrepancies = await prismaconnection.discrepancy.findMany({
         where: {
           termsheetId: termsheet.id,
-          ...(isAdmin 
-            ? {} 
-            : { role: userOrganization.role } 
-          )
+          ...(isAdmin ? {} : { role }),
         },
         select: {
           id: true,
@@ -383,31 +380,32 @@ const function_to_upload_structured_sheet= async (req: Request, res: Response): 
           score: true,
           acceptedbyrole: true,
           acceptedbyadmin: true,
-          createdAt: true
-        }
+          createdAt: true,
+        },
       });
-      const formattedDiscrepancies = discrepancies.map(disc => ({
+  
+      const formattedDiscrepancies = discrepancies.map((disc) => ({
         ...disc,
         //@ts-ignore
-        score: disc.score ? parseFloat(disc.score) : undefined
+        score: disc.score ? parseFloat(disc.score) : undefined,
       }));
   
       res.status(200).json({
         success: true,
-        data: formattedDiscrepancies
+        role, // return the user's role in the response
+        data: formattedDiscrepancies,
       });
-      return
-      
-    } catch (error:any) {
+    } catch (error: any) {
       console.error('Error fetching discrepancies:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to fetch discrepancies',
-        error: error.message
+        error: error.message,
       });
-      return 
     }
   };
+  
+  export default get_discrepancies;
 
 
 export  {function_to_upload , getfile, function_to_upload_structured_sheet,get_struct_file,get_Validated_File,get_discrepancies}
