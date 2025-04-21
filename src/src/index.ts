@@ -3,13 +3,13 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import Authrouter from './routes/Auth.routes';
 import Organisztionrouter from './routes/Organization.routes';
-import termsheetrouter from './routes/Termsheet.route';
+import termsheetRouter from './routes/Termsheet.route';
 import filerouter from './routes/File.routes';
 dotenv.config();
 import cookieParser from 'cookie-parser';
 import Discrepancieroute from './routes/Discrepancie.route';
 import router from './routes/emailroutes';
-
+// import termsheet from './routes/Termsheet.route';
 const app = express();
 const base_url="/api/v1";
 // app.options('*', cors())
@@ -34,11 +34,11 @@ const port = process.env.PORT || 5000;
 
 app.use(`${base_url}/auth`,Authrouter)
 app.use(`${base_url}/organisation`,Organisztionrouter)
-app.use(`${base_url}/termsheet`,termsheetrouter)
+app.use(`${base_url}/termsheet`,termsheetRouter)
 app.use(`${base_url}/file`,filerouter)
 app.use(`${base_url}/discrepancie`,Discrepancieroute)
 app.use(`${base_url}/`,router)
-
+// app.use(`${base_url}/termsheet`, termsheetrouter);
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
