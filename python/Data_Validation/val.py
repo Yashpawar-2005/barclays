@@ -68,9 +68,16 @@ def pass_llm(prompt: str) -> requests.Response:
     return requests.post(llama_url, json=message, headers=headers)
 
 
-def convert_response_to_excel(response: requests.Response, output_path: str) -> None:
+def convert_response_to_excel(response: requests.Response, output_path: str) -> pd.DataFrame:
     """
-    Converts the LLM response (JSON with nested CSV string) into an Excel file.
+    Converts the LLM response into an Excel file and returns the DataFrame.
+    
+    Args:
+        response (requests.Response): LLM response
+        output_path (str): Path to save Excel file
+        
+    Returns:
+        pd.DataFrame: Processed DataFrame or None on error
     """
     try:
         # Parse the outer JSON structure
@@ -104,10 +111,12 @@ def convert_response_to_excel(response: requests.Response, output_path: str) -> 
                 worksheet.column_dimensions[chr(65 + idx)].width = max_length
         
         print(f"Comparison Excel file saved to: {output_path}")
+        return df
         
     except Exception as e:
         print(f"Error converting response to Excel: {str(e)}")
-        print("Raw response:", response.text[:200])  # Print first 200 chars for debugging
+        print("Raw response:", response.text[:200])
+        return None
 
 
 def split_comparison_results(excel_path: str, output_dir: str = "data_validation") -> tuple:
@@ -161,8 +170,11 @@ def split_comparison_results(excel_path: str, output_dir: str = "data_validation
 
 # Example usage
 if __name__ == "__main__":
+    # Hardcoded input and output paths
     file1 = "data_validation/output_llama.xlsx"
     file2 = "data_validation/termsheet_output_llama.csv"
+    output_excel = "data_validation/comparison_output.xlsx"
+    
     prompt = prepare_table_comparison_prompt(file1, file2)
     response = pass_llm(prompt)
 
@@ -171,11 +183,14 @@ if __name__ == "__main__":
             data = response.json()
             print(f"Keys in response: {list(data.keys())}")
             
-            output_path = os.path.join("data_validation", "comparison_output.xlsx")
-            convert_response_to_excel(response, output_path)
+            df = convert_response_to_excel(response, output_excel)
             
-            # Split results into separate JSON files
-            matches_path, discrepancies_path = split_comparison_results(output_path)
+            if df is not None:
+                print("\nFirst few rows of the comparison:")
+                print(df.head())
+                
+                # Split results into separate JSON files
+                matches_path, discrepancies_path = split_comparison_results(output_excel)
             
         except json.JSONDecodeError as e:
             print(f"Error parsing JSON: {str(e)}")
