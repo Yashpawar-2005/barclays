@@ -217,7 +217,7 @@ const OrganizationSidebar:  React.FC<Props> = ({setorgtoggle}) => {
                 ) : (
                   adminOrgs.map(org => (
                     <Card key={org.id} className="bg-gray-50 hover:bg-gray-100 border-gray-200 cursor-pointer transition-colors">
-                      <Link to={`/org/${org.id}`}>
+                      <Link to={`/admin/${org.id}`}>
                       <CardContent className="flex flex-col py-1.5 px-3 text-sm">
                         <span className="text-black font-medium truncate">{org.name}</span>
                         <div className="flex items-center gap-1 text-xs text-blue-500">
@@ -251,7 +251,7 @@ const OrganizationSidebar:  React.FC<Props> = ({setorgtoggle}) => {
                 ) : (
                   memberOrgs.map(org => (
                     <Card key={org.id} className="bg-gray-50 hover:bg-gray-100 border-gray-200 cursor-pointer transition-colors">
-                      <Link to={`/org/${org.id}`}>
+                      <Link to={`/${org.role}/${org.id}`}>
                      <CardContent className="flex flex-col py-1.5 px-3 text-sm">
                         <span className="text-black font-medium truncate">{org.name}</span>
                         <div className="flex items-center gap-1 text-xs text-blue-500">

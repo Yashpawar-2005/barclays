@@ -17,7 +17,7 @@ import {
 import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
-import { Search, Filter, RefreshCw, ArrowRight, FileText, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Filter, RefreshCw, ArrowRight, FileText, CheckCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../../ui/avatar';
 
 // Define TypeScript interfaces matching Prisma schema

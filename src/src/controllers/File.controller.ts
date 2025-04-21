@@ -37,50 +37,67 @@ const forwardFileToExternalService = async (termsheet_id:number) => {
 };
 
 const function_to_upload = async (req: Request, res: Response): Promise<void> => {
-    try {
-        // console.log("hittin")
-        // console.log(req.body)
-        // console.log(req.file)
-      
-      if (!req.file) {
-          res.status(400).json({ error: 'No file uploaded' });
-        return 
-      }
-      const file = req.file;
-      const fileType = detectFileType(file);
-  
-      const s3Result = await uploadToS3(file);
-  
-      const fileRecord = await saveFileRecord({
-        fileName: file.originalname,
-        termsheetname:req.body.termsheetName,
-        orgid:parseInt(req.body.id),
-        fileType,
-        fileSize: file.size,
-        s3Url: s3Result.Location,
-        mimeType: file.mimetype
-      });
-  
-      
-  
-      fs.unlinkSync(file.path);
-      
-      res.status(201).json({
-        message: 'File uploaded successfully',
-        fileId: fileRecord,
-        url: s3Result.Location,
-        // externalServiceResponse: externalResponse
-      });
-      return 
-    } catch (error: any) {
-      console.error('Error processing file upload:', error);
-      res.status(500).json({
-          error: 'Failed to process file upload',
-          message: error.message
-        });
-        return
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: 'No file uploaded' });
+      return;
     }
-  };
+    
+    const file = req.file;
+    const fileType = detectFileType(file);
+    const orgId = parseInt(req.body.id);
+
+    // First handle the termsheet status update
+    try {
+      // Find the latest termsheet for this organization
+      const latestTermsheet = await prismaconnection.termsheet.findFirst({
+        where: { organisationId: orgId },
+        orderBy: { createdAt: 'desc' }
+      });
+      console.log(latestTermsheet)
+
+      // Update the status if found
+      if (latestTermsheet) {
+        await prismaconnection.termsheet.update({
+          where: { id: latestTermsheet.id },
+          data: { status: "REJECTED" }
+        });
+      }
+    } catch (dbError) {
+      console.error('Database error when updating termsheet status:', dbError);
+      // Continue with the file upload process even if the DB update fails
+    }
+
+    // Now proceed with the S3 upload
+    const s3Result = await uploadToS3(file);
+
+    const fileRecord = await saveFileRecord({
+      fileName: file.originalname,
+      termsheetname: req.body.termsheetName,
+      orgid: orgId,
+      fileType,
+      fileSize: file.size,
+      s3Url: s3Result.Location,
+      mimeType: file.mimetype
+    });
+
+    fs.unlinkSync(file.path);
+      
+    res.status(201).json({
+      message: 'File uploaded successfully',
+      fileId: fileRecord,
+      url: s3Result.Location,
+    });
+    return;
+  } catch (error: any) {
+    console.error('Error processing file upload:', error);
+    res.status(500).json({
+      error: 'Failed to process file upload',
+      message: error.message
+    });
+    return;
+  }
+};
 
 const function_to_upload_structured_sheet= async (req: Request, res: Response): Promise<void> => {
     try {

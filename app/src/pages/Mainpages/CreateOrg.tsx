@@ -10,6 +10,7 @@ import OrganizationFooter from '../../components/comps/organisation/Organization
 import OrganizationHeader from '../../components/comps/organisation/OrganizationHeader'
 import { Member, Organization } from '../../components/comps/organisation/organization'
 import { api } from '../../services/axios'
+import { useNavigate } from 'react-router-dom'
 
 interface CreateOrgProps {
   createorgtoggle: boolean;
@@ -26,6 +27,7 @@ const CreateOrg = ({ createorgtoggle, setorgtoggle }: CreateOrgProps) => {
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const [newNameFromExisting, setNewNameFromExisting] = useState<string>('')
+  const navigator=useNavigate();
   
   // Reset selections when changing tabs
   useEffect(() => {
@@ -37,8 +39,6 @@ const CreateOrg = ({ createorgtoggle, setorgtoggle }: CreateOrgProps) => {
       setNewOrganizationName('')
     }
   }, [activeTab])
-
-  // Fetch members and organizations when component mounts
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
@@ -72,17 +72,16 @@ const CreateOrg = ({ createorgtoggle, setorgtoggle }: CreateOrgProps) => {
           orgName: newOrganizationName,
           users: selectedMembers
         });
+        console.log(res.data)
+        navigator(`/admin/${res.data.id}`)
         console.log('Response:', res);
       } else if (selectedOrganization) {
-        // Create new organization based on existing one
         const res = await api.post("/organisation/Org_creation_with_user", {
           orgName: newNameFromExisting,
           templateOrgId: selectedOrganization.id
         });
         console.log('Created from existing template:', res);
       }
-  
-      // Close modal after submission
       setorgtoggle(false);
     } catch (error) {
       console.error('Error during organization creation:', error);

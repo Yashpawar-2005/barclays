@@ -14,6 +14,7 @@ model User {
   password        String
   createdAt       DateTime          @default(now())
   organisations   UserOrganisation[] 
+  notifications   Notification[]    // Relation to notifications
 }
 
 model Organisation {
@@ -36,7 +37,7 @@ model UserOrganisation {
   organisation    Organisation      @relation(fields: [organisationId], references: [id])
   @@id([userId, organisationId]) 
 } 
-
+  
 model Termsheet {
   id                   Int           @id @default(autoincrement())
   title                String
@@ -46,6 +47,8 @@ model Termsheet {
   structuredsheetFileId Int?
   ourtermsheetFileId   Int?
   validatedsheetFileId Int?
+  coloursheetFileId  Int?
+  coloursheetFile   File?         @relation("ColouredsheetFile", fields: [coloursheetFileId], references: [id])
   organisationId       Int
   createdAt            DateTime      @default(now())
   mapsheetFile         File?         @relation("MapsheetFile", fields: [mapsheetFileId], references: [id])
@@ -79,4 +82,14 @@ model File {
   structuredTermsheets Termsheet[] @relation("StructuredsheetFile")
   ourtermTermsheets   Termsheet[] @relation("OurtermsheetFile")  
   validatedTermsheets Termsheet[] @relation("ValidatedsheetFile")
+  colourTermsheets   Termsheet[] @relation("ColouredsheetFile")
+}
+model Notification {
+  id              Int           @id @default(autoincrement())
+  type            String?       
+  content         String?
+  seen            Boolean?       @default(false) 
+  createdAt       DateTime      @default(now())
+  userId          Int?
+  user            User?          @relation(fields: [userId], references: [id])
 }

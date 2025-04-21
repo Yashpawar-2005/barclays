@@ -6,6 +6,8 @@ import { useUserStore } from "./services/auth.service";
 import Organisationpage from "./pages/Mainpages/Organisationpage";
 import Orgid from "./pages/Organisationpage/Orgid";
 import PAGE from "./pages/Organisationpage/PAGE";
+import AdminDashboard from "./components/comps/admin/Adminpage";
+import { TeamMemberSidebar } from "./components/comps/Rightsidebars/termsheetinputs/teammembers";
 export default function App() {
   const { user} = useUserStore();
   return (
@@ -28,6 +30,23 @@ export default function App() {
         path="/termsheet/:orgid"
         element={user ?<PAGE/>:<Navigate to="/"/>}
       />
+      <Route
+        path="/admin/:orgid"
+        element={user?<><AdminDashboard/></>:<Navigate to="/"/>}
+        />
+        <Route
+        path="/:role/:orgid"
+        element={user?<></>:<Navigate to="/"/>}
+  />
+  <Route
+        path="/role/termsheet/:orgid"
+        element={user?<PAGE/>:<Navigate to="/"/>}
+  />
+
+      <Route
+        path="/admin/termsheet/:orgid"
+        element={user?<PAGE/>:<Navigate to="/"/>}
+        />
     </Routes>
 
   )
