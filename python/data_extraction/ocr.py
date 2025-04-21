@@ -9,19 +9,9 @@ import pytesseract
 import pymupdf
 import pandas as pd
 import platform
-import requests
 
 if platform.system()=='Windows':
     pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-
-
-def download_file_from_url(url, save_path):
-    r = requests.get(url)
-    if r.status_code != 200:
-        raise Exception(f"Failed to download file: {url}")
-    with open(save_path, "wb") as f:
-        f.write(r.content)
-    return save_path
 
 def extract_img_content(img_path):
     

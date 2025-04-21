@@ -1,17 +1,32 @@
+import sys
 import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+
+
 import pandas as pd
 import sys
 import json
 from io import StringIO
 import requests
 from dotenv import load_dotenv
-
+from config import *
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from data_extraction.clean_data import preprocess_data
 from data_extraction.ocr import extract_pdf_content
-from flask import Blueprint, Response, jsonify, request
-
+from sqlalchemy import select,insert,update
+import boto3
+import datetime
 load_dotenv()
+
+
+def download_file_from_url(url,save_path):
+    r = requests.get(url)
+    if r.status_code!=200:
+        raise Exception(f"Failed to download file {url}")
+    with open(save_path,"wb") as f:
+        f.write(r.content)
 
 
 def _read_table(path: str) -> pd.DataFrame:
@@ -29,6 +44,8 @@ def prepare_table_comparison_prompt(path1: str, path2: str) -> str:
     """
     Reads two table files (CSV or Excel) and returns a prompt string
     suitable for feeding into a Llama-70B model to compare them.
+    path1 is termsheet
+    path2 is mapsheet
     """
     df1 = _read_table(path1)
     df2 = _read_table(path2)
@@ -110,9 +127,10 @@ def convert_response_to_excel(response: requests.Response, output_path: str) -> 
                 ) + 2
                 worksheet.column_dimensions[chr(65 + idx)].width = max_length
         
+        
         print(f"Comparison Excel file saved to: {output_path}")
         return df
-        
+    
     except Exception as e:
         print(f"Error converting response to Excel: {str(e)}")
         print("Raw response:", response.text[:200])
@@ -168,12 +186,91 @@ def split_comparison_results(excel_path: str, output_dir: str = "data_validation
         return None, None
 
 
+
+
+def main(termsheet_id):
+    output_excel = "output/validation_sheet.xlsx"
+    termsheet_table = meta.tables["Termsheet"]
+    file_table = meta.tables["File"]
+    termsheet_query = select(file_table.c.type,file_table.c.s3Link).join(termsheet_table,file_table.c.id==termsheet_table.c.structuredsheetFileId).where(termsheet_table.c.id==termsheet_id)
+    with engine.connect() as conn:
+        res = conn.execute(termsheet_query).fetchone()
+    struc_term_type = res[0]
+    struc_term_link = res[1]
+    struc_term_save_path = "output/structured_csv.csv"
+    download_file_from_url(struc_term_link,save_path=struc_term_save_path)
+    mapsheet_query = select(file_table.c.type,file_table.c.s3Link).join(termsheet_table,file_table.c.id==termsheet_table.c.mapsheetFileId).where(termsheet_table.c.id==termsheet_id)
+    with engine.connect() as conn:
+        res = conn.execute(mapsheet_query).fetchone()
+    mapsheet_type = res[0]
+    mapsheet_link = res[1]
+    if mapsheet_type=="CSV":
+        mapsheet_save_path = "temp/mapsheet.csv"
+    else:
+        mapsheet_save_path = "temp/mapsheet.xlsx"
+    download_file_from_url(mapsheet_link,mapsheet_save_path)
+    prompt = prepare_table_comparison_prompt(struc_term_save_path,mapsheet_save_path)
+    response = pass_llm(prompt)
+    if response.status_code==200:
+        try:
+            data = response.json()
+            print(f"Keys in response: {list(data.keys())}")
+            
+            df = convert_response_to_excel(response, output_excel)
+
+            timestamp = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            s3 = boto3.resource(
+                    "s3",
+                    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+                    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+                    region_name=os.getenv("AWS_REGION")
+                )
+            filename = f"output/validation_sheet_{timestamp}.xlsx"
+            
+            with open(output_excel,"rb") as f:
+                    s3.Bucket(os.getenv("AWS_S3_BUCKET")).upload_fileobj(f, output_excel)
+
+            s3_link = f"https://barcla.s3.ap-south-1.amazonaws.com/{filename}"
+            with engine.begin() as conn:
+                file_insert_query = insert(file_table).values(
+                        s3Link = s3_link,
+                        type = "EXCEL"
+                    ).returning(file_table.c.id)
+                result = conn.execute(file_insert_query)
+                res_id = result.scalar()
+
+                update_query = (
+                        update(termsheet_table)
+                        .where(termsheet_table.c.id==termsheet_id)
+                        .values(validatedsheetFileId=res_id,status="TO BE ACCEPTED")
+                    )
+                conn.execute(update_query)
+
+            if df is not None:
+                print("\nFirst few rows of the comparison:")
+                print(df.head())
+                
+                # Split results into separate JSON files
+                matches_path, discrepancies_path = split_comparison_results(output_excel)
+            
+            os.remove(struc_term_save_path)
+            os.remove(mapsheet_save_path)
+        except json.JSONDecodeError as e:
+            print(f"Error parsing JSON: {str(e)}")
+            print("Raw response:", response.text[:200])
+    else:
+        print(f"Error: {response.status_code} - {response.text}")
+
+
+
+
+
 # Example usage
 if __name__ == "__main__":
     # Hardcoded input and output paths
     file1 = "data_validation/output_llama.xlsx"
     file2 = "data_validation/termsheet_output_llama.csv"
-    output_excel = "data_validation/comparison_output.xlsx"
+    output_excel = "output/validation_sheet.xlsx"
     
     prompt = prepare_table_comparison_prompt(file1, file2)
     response = pass_llm(prompt)

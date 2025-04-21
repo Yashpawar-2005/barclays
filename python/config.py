@@ -1,6 +1,9 @@
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import MetaData
+from sqlalchemy import create_engine,inspect,MetaData
+import os
 
-db = SQLAlchemy()
-metadata = MetaData()
-tables = {}
+
+engine= create_engine(os.getenv("DATABASE_URL"))
+inspector = inspect(engine)
+
+meta = MetaData()
+meta.reflect(bind=engine)
