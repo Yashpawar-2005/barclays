@@ -910,57 +910,83 @@ def save_text_chunks(chunks: list, base_output_path: str) -> str:
         print(f"Error saving text chunks: {str(e)}")
         return None
 
-if __name__ == "__main__":
-    output_base = 'data_structurization/test3_deep_fewshot'  # Remove file extension
-    pdf_path = 'data_structurization/TS3.pdf'
-    mapsheet = 'data_structurization/output_llama.xlsx'
+def process_termsheet_pipeline(pdf_path: str, mapsheet_path: str, output_base: str) -> pd.DataFrame:
+    """
+    Complete pipeline for processing termsheets from PDF to structured data
     
-    print(f"Processing {pdf_path}...")
-    start = time.time()
-    
-    # Extract text from PDF
-    text = extract_pdf_content(pdf_path)
-    if not text:
-        print("Failed to extract text from PDF")
-        sys.exit(1)
-    
-    # Preprocess the extracted text
-    clean = preprocess_data(text)
-    
-    # Save raw text chunks
-    chunks_file = save_text_chunks(clean['en'], output_base)
-    if chunks_file:
-        print(f"\nSaved raw text chunks to: {chunks_file}")
-    
-    # Process each chunk
-    print("Sending chunks to DeepSeek model via load balancer...")
-    results = []
-    raw_responses = []
-    
-    for i, chunk in enumerate(clean['en']):
-        print(f"Processing chunk {i+1}/{len(clean['en'])}...")
-        res = structure_data(chunk, mapsheet)
-        raw_responses.append(res)  # Store raw response
-        results.append(res)
+    Args:
+        pdf_path (str): Path to input PDF termsheet
+        mapsheet_path (str): Path to Excel mapsheet with features
+        output_base (str): Base path for output files (without extension)
         
-        # Add delay between chunks to avoid rate limiting
-        if i < len(clean['en']) - 1:
-            wait_time = 5  # Wait 5 seconds between chunks
-            print(f"Waiting {wait_time} seconds before processing next chunk...")
-            time.sleep(wait_time)
+    Returns:
+        pd.DataFrame: Processed DataFrame or None on error
+    """
+    try:
+        print(f"Processing {pdf_path}...")
+        start = time.time()
+        
+        # 1. Extract text from PDF
+        text = extract_pdf_content(pdf_path)
+        if not text:
+            print("Failed to extract text from PDF")
+            return None
+        
+        # 2. Preprocess the extracted text
+        clean = preprocess_data(text)
+        
+        # 3. Save raw text chunks
+        chunks_file = save_text_chunks(clean['en'], output_base)
+        if chunks_file:
+            print(f"\nSaved raw text chunks to: {chunks_file}")
+        
+        # 4. Process each chunk
+        print("Sending chunks to DeepSeek model via load balancer...")
+        results = []
+        raw_responses = []
+        
+        for i, chunk in enumerate(clean['en']):
+            print(f"Processing chunk {i+1}/{len(clean['en'])}...")
+            res = structure_data(chunk, mapsheet_path)
+            raw_responses.append(res)
+            results.append(res)
+            
+            # Add delay between chunks to avoid rate limiting
+            if i < len(clean['en']) - 1:
+                wait_time = 5
+                print(f"Waiting {wait_time} seconds before processing next chunk...")
+                time.sleep(wait_time)
+        
+        # 5. Save raw model responses
+        responses_file = save_model_responses(raw_responses, output_base)
+        if responses_file:
+            print(f"\nSaved model responses to: {responses_file}")
+        
+        # 6. Process all responses and save files
+        df = process_chunked_responses(results, output_base, mapsheet_path)
+        
+        if df is not None:
+            print(f"\nProcessing complete! Time taken: {time.time() - start:.2f} seconds")
+            print(f"Output saved to {output_base}.csv and {output_base}.xlsx")
+            return df
+        
+        return None
+        
+    except Exception as e:
+        print(f"Error in pipeline: {str(e)}")
+        return None
+
+if __name__ == "__main__":
+    # Define input and output paths
+    pdf_path = 'data_structurization/TS3.pdf'
+    mapsheet_path = 'data_structurization/output_llama.xlsx'
+    output_base = 'data_structurization/test3_deep_fewshot'
     
-    # Save raw model responses
-    responses_file = save_model_responses(raw_responses, output_base)
-    if responses_file:
-        print(f"\nSaved model responses to: {responses_file}")
-    
-    # Process all responses together and save files
-    df = process_chunked_responses(results, output_base, mapsheet)
+    # Run the pipeline
+    df = process_termsheet_pipeline(pdf_path, mapsheet_path, output_base)
     
     if df is not None:
-        print(f"\nProcessing complete! Time taken: {time.time() - start:.2f} seconds")
-        print(f"Output saved to {output_base}.csv and {output_base}.xlsx")
         print("\nFirst few rows of extracted data:")
         print(df.head())
     else:
-        print("Error: Failed to create output files")
+        print("Pipeline failed to process the termsheet")
