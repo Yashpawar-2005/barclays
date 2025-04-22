@@ -11,16 +11,17 @@ from data_extraction.ocr import extract_pdf_content
 
 def clean_text(line):
     clean_line = line
-    clean_line = re.sub(r'^\s+','',line).strip()
-    clean_line = re.sub(r'^[\-=*_.~\s]{3,}|[\-=*_.~\s]{3,}$','',clean_line).strip()
-    clean_line = re.sub(r'\.{3,}', ' ', clean_line).strip()
+    # clean_line = re.sub(r'^\s+','',line).strip()
+    # clean_line = re.sub(r'^[\-=*_.~\s]{3,}|[\-=*_.~\s]{3,}$','',clean_line).strip()
+    # clean_line = re.sub(r'\.{3,}', ' ', clean_line).strip()
     return clean_line
 
 def preprocess_data(doc):
     
-    splitter = RecursiveCharacterTextSplitter(chunk_size=100000,chunk_overlap=100)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=100000,chunk_overlap=1000)
     content = doc.page_content
     chunks = splitter.split_text(content)
+
     DetectorFactory.seed = 0
     lang_dict = defaultdict(list)
     for chunk in chunks:
