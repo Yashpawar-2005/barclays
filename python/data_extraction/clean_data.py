@@ -18,7 +18,7 @@ def clean_text(line):
 
 def preprocess_data(doc):
     
-    splitter = RecursiveCharacterTextSplitter(chunk_size=5000,chunk_overlap=100)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=100000,chunk_overlap=100)
     content = doc.page_content
     chunks = splitter.split_text(content)
     DetectorFactory.seed = 0
