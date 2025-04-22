@@ -665,7 +665,10 @@ Not Applicable
 OUTPUT:
 \n
 
-json:{\\n  \\\"Settlement Currency\\\": \\\"EUR\\\",\\n  \\\"Tranche number\\\": 1,\\n  \\\"Redeemable Certificates\\\": \\\"Not Applicable\\\",\\n  \\\"Issue Price\\\": \\\"100.00 per cent of the Specified Denomination. The Issue Price includes a commission element payable by the Issuer to the Authorised Offeror which will be no more than 5.00 per cent. of the Issue Price. Investors in the Securities intending to invest through an intermediary (including by way of introducing broker) should request details of any such commission or fee payment from such intermediary before making any purchase hereof\\\"\\n}\
+json:{\\n  \\\"Settlement Currency\\\": \\\"EUR\\\",\\n  \\\"Tranche number\\\": 1,\\n  \\\"Redeemable Certificates\\\": \\\"Not Applicable\\\",\\n  \\\"Issue Price\\\": \\\"100.00 per cent of the Specified Denomination. The Issue Price includes a commission element payable by the Issuer to the Authorised Offeror which will be no more than 5.00 per cent. of the Issue Price. Investors in the Securities intending to invest through an intermediary (including by way of introducing broker) should request details of any such commission or fee payment from such intermediary before making any purchase hereof\\\"\\n}
+
+
+Now below is the actual termsheet you have to extract the features from, features are given in the features list at top. \n
 """
     prompt = ("-START OF FEATURES LIST-\n" + features + "\n-END OF FEATURES LIST-" + prompt_template + "-START OF TERMSHEET-\n" + ','.join(text) + "\n-END OF TERMSHEET-")
     
@@ -980,7 +983,7 @@ if __name__ == "__main__":
     # Define input and output paths
     pdf_path = 'data_structurization/TS3.pdf'
     mapsheet_path = 'data_structurization/output_llama.xlsx'
-    output_base = 'data_structurization/test3_deep_fewshot'
+    output_base = 'data_structurization/test3_deep_fewshot_final'
     
     # Run the pipeline
     df = process_termsheet_pipeline(pdf_path, mapsheet_path, output_base)
