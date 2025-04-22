@@ -6,12 +6,13 @@ from langchain_core.documents import Document
 
 import cv2
 import pytesseract
-import pymupdf
+import fitz  # Changed from pymupdf to fitz
 import pandas as pd
 import platform
 
 if platform.system()=='Windows':
     pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
 
 def extract_img_content(img_path):
     
@@ -25,7 +26,7 @@ def extract_img_content(img_path):
 
 def extract_word_content(word_path):
     result = ""
-    doc = pymupdf.open(word_path)
+    doc = fitz.open(word_path)
     for page in doc:
         tabs = page.find_tables()
         if len(tabs.tables)>0:
@@ -38,17 +39,26 @@ def extract_word_content(word_path):
     return lc_doc
 
 def extract_pdf_content(pdf_path):
-    doc  = pymupdf.open(pdf_path)
+    doc = fitz.open(pdf_path)
     result = ""
-    for page in doc:
+    for page_num, page in enumerate(doc, 1):
+        # Add page number header
+        result += f"\n=== Page {page_num}/{len(doc)} ===\n"
+        
         tabs = page.find_tables()
-        if len(tabs.tables)>0:
+        if len(tabs.tables) > 0:
             for i in range(len(tabs.tables)):
-                result+= tabs[i].to_markdown()
+                result += tabs[i].to_markdown()
         else:
-            result+= page.get_text()
-        pass
-    lc_doc = Document(page_content=result,metadata={"source":"Termsheet pdf"})
+            result += page.get_text()
+    
+    lc_doc = Document(
+        page_content=result,
+        metadata={
+            "source": "Termsheet pdf",
+            "total_pages": len(doc)
+        }
+    )
     return lc_doc
 
 def extract_excel_content(excel_path):
