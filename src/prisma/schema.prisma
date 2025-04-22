@@ -14,7 +14,7 @@ model User {
   password        String
   createdAt       DateTime          @default(now())
   organisations   UserOrganisation[] 
-  notifications   Notification[]    // Relation to notifications
+  notifications   Notification[]
 }
 
 model Organisation {
@@ -35,61 +35,66 @@ model UserOrganisation {
   createdAt       DateTime          @default(now())
   user            User              @relation(fields: [userId], references: [id])
   organisation    Organisation      @relation(fields: [organisationId], references: [id])
-  @@id([userId, organisationId]) 
-} 
-  
+  @@id([userId, organisationId])
+}
+
+model File {
+  id                   Int         @id @default(autoincrement())
+  s3Link               String
+  type                 String?
+  createdAt            DateTime    @default(now())
+
+  // Relations back to Termsheet
+  mapsheetTermsheets      Termsheet[] @relation("MapsheetFile")
+  structuredTermsheets    Termsheet[] @relation("StructuredsheetFile")
+  ourtermTermsheets       Termsheet[] @relation("OurtermsheetFile")
+  validatedTermsheets     Termsheet[] @relation("ValidatedsheetFile")
+  colourTermsheets        Termsheet[] @relation("ColouredsheetFile")
+}
+
 model Termsheet {
-  id                   Int           @id @default(autoincrement())
-  title                String
-  description          String?
-  mapsheetFileId       Int?
-  status               String @default("TO BE STRUCTURIZED")
-  structuredsheetFileId Int?
-  ourtermsheetFileId   Int?
-  validatedsheetFileId Int?
-  coloursheetFileId  Int?
-  coloursheetFile   File?         @relation("ColouredsheetFile", fields: [coloursheetFileId], references: [id])
-  organisationId       Int
-  createdAt            DateTime      @default(now())
-  mapsheetFile         File?         @relation("MapsheetFile", fields: [mapsheetFileId], references: [id])
-  structuredsheetFile  File?         @relation("StructuredsheetFile", fields: [structuredsheetFileId], references: [id])
-  ourtermsheetFile     File?         @relation("OurtermsheetFile", fields: [ourtermsheetFileId], references: [id])
-  validatedsheetFile   File?         @relation("ValidatedsheetFile", fields: [validatedsheetFileId], references: [id])
-  organisation         Organisation  @relation(fields: [organisationId], references: [id])
+  id                      Int           @id @default(autoincrement())
+  title                   String
+  description             String?
+  mapsheetFileId          Int?
+  structuredsheetFileId   Int?
+  ourtermsheetFileId      Int?
+  validatedsheetFileId    Int?
+  coloursheetFileId       Int?
+  status                  String        @default("TO BE STRUCTURIZED")
+  organisationId          Int
+  createdAt               DateTime      @default(now())
+
+  mapsheetFile         File?       @relation("MapsheetFile", fields: [mapsheetFileId], references: [id])
+  structuredsheetFile  File?       @relation("StructuredsheetFile", fields: [structuredsheetFileId], references: [id])
+  ourtermsheetFile     File?       @relation("OurtermsheetFile", fields: [ourtermsheetFileId], references: [id])
+  validatedsheetFile   File?       @relation("ValidatedsheetFile", fields: [validatedsheetFileId], references: [id])
+  coloursheetFile      File?       @relation("ColouredsheetFile", fields: [coloursheetFileId], references: [id])
+
+  organisation         Organisation @relation(fields: [organisationId], references: [id])
   discrepancies        Discrepancy[]
 }
 
 model Discrepancy {
-  id              Int           @id @default(autoincrement())
-  role            String?  
-  score           String?      
-  content         String?
-  suggestion      String?
-  field           String?
-  acceptedbyrole  Boolean?
-  acceptedbyadmin Boolean?     
-  termsheetId     Int
-  createdAt       DateTime      @default(now())
-  termsheet       Termsheet     @relation(fields: [termsheetId], references: [id])
+  id                 Int        @id @default(autoincrement())
+  role               String?
+  score              String?
+  content            String?
+  suggestion         String?
+  field              String?
+  acceptedbyrole     Boolean?
+  acceptedbyadmin    Boolean?
+  termsheetId        Int
+  createdAt          DateTime   @default(now())
+  termsheet          Termsheet  @relation(fields: [termsheetId], references: [id])
 }
 
-model File {
-  id                  Int         @id @default(autoincrement())
-  s3Link              String
-  type                String?
-  createdAt           DateTime    @default(now())
-  mapsheetTermsheets  Termsheet[] @relation("MapsheetFile")
-  structuredTermsheets Termsheet[] @relation("StructuredsheetFile")
-  ourtermTermsheets   Termsheet[] @relation("OurtermsheetFile")  
-  validatedTermsheets Termsheet[] @relation("ValidatedsheetFile")
-  colourTermsheets   Termsheet[] @relation("ColouredsheetFile")
-}
 model Notification {
-  id              Int           @id @default(autoincrement())
-  type            String?       
-  content         String?
-  seen            Boolean?       @default(false) 
-  createdAt       DateTime      @default(now())
-  userId          Int?
-  user            User?          @relation(fields: [userId], references: [id])
+  id          Int       @id @default(autoincrement())
+  type        String?
+  content     String?
+  seen        Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  userId      Int?
+  user        User?     @relation(fields: [userId], references: [id])
 }
