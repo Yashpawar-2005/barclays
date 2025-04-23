@@ -25,47 +25,7 @@ def download_file_from_url(url,save_path):
         f.write(r.content)
 
 
-
-# engine= create_engine(os.getenv("DATABASE_URL"))
-# inspector = inspect(engine)
-
-# meta = MetaData()
-# meta.reflect(bind=engine)
-
-tables = inspector.get_table_names()
-print("Tables: ",tables)
-
-termsheet_id = "54"
-org_id = "19"
-
-org = meta.tables["Organisation"]
-user_org = meta.tables["UserOrganisation"]
-user = meta.tables["User"]
-file = meta.tables["File"]
-termsheet = meta.tables["Termsheet"]
-
-email_query = select(user.c.email).select_from(user.join(user_org,user_org.c.userId==user.c.id)).where(user_org.c.organisationId==org_id)
-val_query = select(file.c.s3Link).join(termsheet,file.c.id==termsheet.c.validatedsheetFileId).where(termsheet.c.id==termsheet_id)
-pdf_query = select(file.c.s3Link).join(termsheet,file.c.id==termsheet.c.coloursheetFileId).where(termsheet.c.id==termsheet_id)
-struc_query = select(file.c.s3Link).join(termsheet,file.c.id==termsheet.c.structuredsheetFileId).where(termsheet.c.id==termsheet_id)
-
-with engine.connect() as conn:
-    res = conn.execute(email_query).fetchall()
-    val_res = conn.execute(val_query).fetchone()
-    pdf_res = conn.execute(pdf_query).fetchone()
-    struc_res = conn.execute(struc_query).fetchone()
-
-val_path = "output/val.xlsx"
-pdf_path = "output/highlighted.pdf"
-struc_path = "output/struc.csv"
-
-download_file_from_url(val_res[0],val_path)
-download_file_from_url(pdf_res[0],pdf_path)
-download_file_from_url(struc_res[0],struc_path)
-
-emails = [row[0] for row in res]
-attachments = [val_path,pdf_path,struc_path]
-def send_emails(reciever):
+def send_emails(reciever,attachments):
     client = boto3.client('ses',region_name=os.getenv("AWS_REGION"))
     body = "Please find the following attachments \n"
     sender = "shashawte@gmail.com"
@@ -91,5 +51,42 @@ def send_emails(reciever):
     except ClientError as e:
         print(f"client error for {reciever},{e.response["Error"]["Message"]}")
 
-for reciever in emails:
-    send_emails(reciever=reciever)
+
+def main_emails(termsheet_id,org_id):
+    org = meta.tables["Organisation"]
+    user_org = meta.tables["UserOrganisation"]
+    user = meta.tables["User"]
+    file = meta.tables["File"]
+    termsheet = meta.tables["Termsheet"]
+
+    email_query = select(user.c.email).select_from(user.join(user_org,user_org.c.userId==user.c.id)).where(user_org.c.organisationId==org_id)
+    val_query = select(file.c.s3Link).join(termsheet,file.c.id==termsheet.c.validatedsheetFileId).where(termsheet.c.id==termsheet_id)
+    pdf_query = select(file.c.s3Link).join(termsheet,file.c.id==termsheet.c.coloursheetFileId).where(termsheet.c.id==termsheet_id)
+    struc_query = select(file.c.s3Link).join(termsheet,file.c.id==termsheet.c.structuredsheetFileId).where(termsheet.c.id==termsheet_id)
+
+    with engine.connect() as conn:
+        res = conn.execute(email_query).fetchall()
+        val_res = conn.execute(val_query).fetchone()
+        pdf_res = conn.execute(pdf_query).fetchone()
+        struc_res = conn.execute(struc_query).fetchone()
+
+    val_path = "output/val.xlsx"
+    pdf_path = "output/highlighted.pdf"
+    struc_path = "output/struc.csv"
+
+    download_file_from_url(val_res[0],val_path)
+    download_file_from_url(pdf_res[0],pdf_path)
+    download_file_from_url(struc_res[0],struc_path)
+
+    emails = [row[0] for row in res]
+    attachments = [val_path,pdf_path,struc_path]
+
+    for reciever in emails:
+        send_emails(reciever=reciever,attachments=attachments)
+
+
+
+if __name__ == "__main__":
+
+    tables = inspector.get_table_names()
+    print("Tables: ",tables)

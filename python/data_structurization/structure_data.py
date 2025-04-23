@@ -2,17 +2,23 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import pandas as pd
-import json
-from transformers import AutoTokenizer
 from data_extraction.clean_data import preprocess_data
 from data_extraction.ocr import *
+from deepseek_structurizer import process_termsheet_pipeline
+
+import pandas as pd
+import json
+
+from transformers import AutoTokenizer
 import google.generativeai as genai
+
 from dotenv import load_dotenv
 import requests
 import time
 import datetime
+
 import boto3
+
 import io
 import re
 # from flask import Blueprint,Response,jsonify,request
@@ -94,6 +100,8 @@ def use_google_gemini(prompt):
     return model.generate_content(prompt)
 
 def structure_data(text,features):
+    #DONT REMOVE COMMENTED CODE YET
+
     f= ','.join(set(features))
     # print(f)
     prompt_template = f"""
@@ -123,17 +131,15 @@ ONLY return raw JSON starting with `json:{...}`. Do NOT wrap this in quotes or e
 def struct(termsheet_id):
     # if request.method=='POST':
         try:
-            print("heelo")
             # data  = request.get_json()
-            print("1")
+
             termsheet_table = meta.tables["Termsheet"]
-            print("2")
+
             file = meta.tables["File"]
-            print("3")
             file_id = termsheet_id 
-            print("4")
 
             # connect to db for getting mapsheet features 
+            print("connecting to db to get mapsheet")
             with engine.connect() as conn:
                 query = select(file.c.type,file.c.s3Link).join(termsheet_table,file.c.id==termsheet_table.c.mapsheetFileId).where(termsheet_table.c.id==file_id)
                 map_data = conn.execute(query).fetchone()
@@ -148,16 +154,18 @@ def struct(termsheet_id):
                 valid_mapsheet = True
             else:
                 pass
-            features = ["issuer name", "coupon_name", "trade date", "spot price", "notional amount", "strike price", "call/put", "expiry date", "business calendar", "delivery date", "premium date", "transaction copy", "counter ccy", "governing law", "type of security"]
+            # features = ["issuer name", "coupon_name", "trade date", "spot price", "notional amount", "strike price", "call/put", "expiry date", "business calendar", "delivery date", "premium date", "transaction copy", "counter ccy", "governing law", "type of security"]
             if(valid_mapsheet):
+                print("valid mapsheet recieved")
                 download_file_from_url(map_sheet_link,save_path=local_map_path)
-                features = extract_params_from_mapsheet(local_map_path,map_sheet_type)
-                print("extracted features: ",features)
+                print("mapsheet downloaded in local path")
+                # features = extract_params_from_mapsheet(local_map_path,map_sheet_type)
+                # print("extracted features: ",features)
             else:
                 print("no valid mapsheet")
-            print("got shit from shit",file_id)
+            print("querying db for getting unstructured termsheet")
             file_type = None
-            file_str = None
+            # file_str = None
             with engine.connect() as conn:
                 print("connected to db")
                 try:
@@ -174,80 +182,89 @@ def struct(termsheet_id):
             #for local path
             if file_type=='IMAGE':
                 local_path = "./temp/temp_file.png"
-                
             elif file_type == "WORD_DOCUMENT":
-                doc = extract_word_content(file_str)
+                # doc = extract_word_content(file_str)
                 local_path = "./temp/temp_file.docx"
             elif file_type=="PDF":
-                doc = extract_pdf_content(file_str)
+                # doc = extract_pdf_content(file_str)
                 local_path = "./temp/temp_file.pdf"
             elif file_type == "EXCEL":
-                doc = extract_excel_content(file_str)
+                # doc = extract_excel_content(file_str)
                 local_path = "./temp/temp_file.xlsx"
             # else:
             #     return jsonify({"err":"invalid file format"}),400
             
             os.makedirs(os.path.dirname(local_path), exist_ok=True)
             file_str= download_file_from_url(file_url,save_path = local_path)
-            print("got stuff from tables")
+            print("got unstructured termsheet and downloaded locally")
             # if not file_type:
                 # return jsonify({"err":"didnt get file name"}),500
             
+            #....old code!!! dont remove it yet
+
             #for data extraction
-            if file_type=='IMAGE':
-                doc = extract_img_content(file_str)
-            elif file_type == "WORD_DOCUMENT":
-                doc = extract_word_content(file_str)
-            elif file_type=="PDF":
-                doc = extract_pdf_content(file_str)
-            elif file_type == "EXCEL":
-                doc = extract_excel_content(file_str)
+            # if file_type=='IMAGE':
+            #     doc = extract_img_content(file_str)
+            # elif file_type == "WORD_DOCUMENT":
+            #     doc = extract_word_content(file_str)
+            # elif file_type=="PDF":
+            #     doc = extract_pdf_content(file_str)
+            # elif file_type == "EXCEL":
+            #     doc = extract_excel_content(file_str)
             # else:
                 
                 # return jsonify({"err":"invalid file format"}),400
-            print("got documentsss")
+            # print("got documentsss")
             
-            clean = {}
-            if doc:
-                clean = preprocess_data(doc)
-            # else:
+            # clean = {}
+            # if doc:
+            #     clean = preprocess_data(doc)
+            # # else:
             #     return jsonify({"err":"document not recieved"}),500
-            print("cleanneeddd")
-            results = []
-            for chunk in clean['en']:
-                res = structure_data(chunk,features)
-                results.append(res.json())
-            df = parse_csv(results)
+            # print("cleanneeddd")
+            # results = []
+            # for chunk in clean['en']:
+            #     res = structure_data(chunk,features)
+            #     results.append(res.json())
+            # df = parse_csv(results)
+
+            os.makedirs("output", exist_ok=True)
+            timestamp = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            filename = f"output/structured_data_{timestamp}.csv"
+
+            #new code from deepseek_structurizer
+            df = process_termsheet_pipeline(pdf_path=file_str,mapsheet_path=local_map_path,output_base=filename)
+
             if df is not None:
-                print("got csvvv, uploading to s3....")
+
+                print("got csv, uploading to s3")
+
                 s3 = boto3.resource(
                     "s3",
                     aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
                     aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
                     region_name=os.getenv("AWS_REGION")
                 )
-                timestamp = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-                os.makedirs("output", exist_ok=True)
-                filename = f"output/structured_data_{timestamp}.csv"
                 df.to_csv(filename,index=False,na_rep="null")
 
                 # csv_buffer = io.BytesIO(df.encode("utf-8"))
                 with open(filename,"rb") as f:
                     s3.Bucket(os.getenv("AWS_S3_BUCKET")).upload_fileobj(f, filename)
 
-                print("uploaded to s3!!!!!")
+                print("uploaded to s3")
 
 
                 s3_link = f"https://barcla.s3.ap-south-1.amazonaws.com/{filename}"
 
                 with engine.begin() as conn:
+                    print("inserting s3link in the database")
                     file_insert_query = insert(file).values(
                         s3Link = s3_link,
                         type = "CSV"
                     ).returning(file.c.id)
                     result = conn.execute(file_insert_query)
                     res_id = result.scalar()
-
+                    print("link updated! \nupdating process status in db")
                     update_query = (
                         update(termsheet_table)
                         .where(termsheet_table.c.id==file_id)

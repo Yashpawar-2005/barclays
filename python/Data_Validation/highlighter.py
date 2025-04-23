@@ -582,7 +582,7 @@ def create_flask_blueprint():
     
     return pdf_blueprint
 
-def main(termsheet_id):
+def main_highlight(termsheet_id):
     termsheet_table = meta.tables['Termsheet']
     file_table = meta.tables["File"]
     val_termsheet_query = select(file_table.c.type,file_table.c.s3Link).join(termsheet_table,file_table.c.id==termsheet_table.validatedsheetFileId).where(termsheet_table.c.id==termsheet_id)

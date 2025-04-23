@@ -188,7 +188,7 @@ def split_comparison_results(excel_path: str, output_dir: str = "data_validation
 
 
 
-def main(termsheet_id):
+def main_val(termsheet_id):
     output_excel = "output/validation_sheet.xlsx"
     termsheet_table = meta.tables["Termsheet"]
     file_table = meta.tables["File"]
