@@ -13,15 +13,8 @@ export default function OrgidPage() {
     <div className="flex flex-row">
       <OrganizationSidebar />
 
-      <div className="flex-1 p-6 bg-gray-50">
-        {/* Upload button */}
-        <div className="mb-6">
-          <Link to={`/org/${orgId}/upload`}>
-            <Button className="bg-black text-white">
-              Upload Termsheet from Email
-            </Button>
-          </Link>
-        </div>
+       <div className="flex-1 p-6 bg-gray-50">
+        
 
         {/* existing listing/processing section */}
         <TermsheetSection />
