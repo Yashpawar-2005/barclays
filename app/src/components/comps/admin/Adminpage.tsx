@@ -1,6 +1,7 @@
-// barclays/app/src/components/comps/admin/Adminpage.tsx
-import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+// src/components/comps/admin/Adminpage.tsx
+
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Table,
   TableBody,
@@ -8,106 +9,114 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '../../ui/table'
+} from "../../ui/table";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '../../ui/card'
-import { Badge } from '../../ui/badge'
-import { Button } from '../../ui/button'
-import { Input } from '../../ui/input'
-import { Search, Filter, RefreshCw, ArrowRight, FileText } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '../../ui/avatar'
-import { api } from '../../../services/axios'
+} from "../../ui/card";
+import { Badge } from "../../ui/badge";
+import { Button } from "../../ui/button";
+import { Input } from "../../ui/input";
+import {
+  Search,
+  Filter,
+  RefreshCw,
+  ArrowRight,
+  FileText,
+} from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "../../ui/avatar";
+import { api } from "../../../services/axios";
 
 type TermsheetStatus =
-  | 'TO BE STRUCTURIZED'
-  | 'TO BE VALIDATED'
-  | 'VALIDATED'
-  | 'REJECTED'
-  | 'ACCEPTED'
+  | "TO BE STRUCTURIZED"
+  | "TO BE VALIDATED"
+  | "VALIDATED"
+  | "REJECTED"
+  | "ACCEPTED";
 
 interface FileType { id: number; s3Link: string }
-interface User      { userId: number; name: string; email: string; role: string }
-interface OrgUser   { user: User }
-interface Organisation {
-  id: number
-  name: string
-  users: OrgUser[]
-}
+interface User { userId: number; name: string; email: string; role: string }
+interface OrgUser { user: User }
+interface Organisation { id: number; name: string; users: OrgUser[] }
 interface Termsheet {
-  id: number
-  title: string
-  description?: string
-  status: TermsheetStatus
-  organisationId: number
-  createdAt: string
-  mapsheetFile?: FileType
-  structuredsheetFile?: FileType
-  ourtermsheetFile?: FileType
-  validatedsheetFile?: FileType
-  coloursheetFile?: FileType
-  organisation: Organisation
+  id: number;
+  title: string;
+  description?: string;
+  status: TermsheetStatus;
+  organisationId: number;
+  createdAt: string;
+  mapsheetFile?: FileType;
+  structuredsheetFile?: FileType;
+  ourtermsheetFile?: FileType;
+  validatedsheetFile?: FileType;
+  coloursheetFile?: FileType;
+  organisation: Organisation;
 }
 
-type StatusFilter = TermsheetStatus | 'ALL'
+type StatusFilter = TermsheetStatus | "ALL";
 
 export default function Adminpage() {
-  const navigate = useNavigate()
-  const { orgId: orgIdParam } = useParams<{ orgId: string }>()
-  const orgId = Number(orgIdParam)
+  const navigate = useNavigate();
+  const { orgId: orgIdParam } = useParams<{ orgId: string }>();
+  const orgId = Number(orgIdParam);
 
-  const [termsheetData, setTermsheetData] = useState<Termsheet[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedStatus, setSelectedStatus] = useState<StatusFilter>('ALL')
+  const [termsheetData, setTermsheetData] = useState<Termsheet[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("ALL");
 
   useEffect(() => {
-    if (!orgIdParam || isNaN(orgId)) {
-      console.error('Invalid or missing orgId:', orgIdParam)
-      setLoading(false)
-      return
-    }
+    if (!orgIdParam || isNaN(orgId)) return;
 
-    const loadData = async () => {
-      setLoading(true)
-      try {
-        const res = await api.get('/termsheet', {
-          params: { organisationId: orgId },
-        })
-        setTermsheetData(res.data.termsheets)
-      } catch (err) {
-        console.error('Error fetching termsheets:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadData()
-  }, [orgIdParam, orgId])
+    setLoading(true);
+    api
+      .get("/termsheet", { params: { organisationId: orgId } })
+      .then((res) => {
+        console.log(
+          "⚙️ fetched termsheets:",
+          JSON.stringify(res.data.termsheets, null, 2)
+        );
+        setTermsheetData(res.data.termsheets);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [orgIdParam, orgId]);
 
   const getStatusBadge = (s: TermsheetStatus) => {
     const variants: Record<TermsheetStatus, string> = {
-      'TO BE STRUCTURIZED': 'bg-gray-100 text-gray-800',
-      'TO BE VALIDATED':    'bg-gray-100 text-gray-800',
-      VALIDATED:            'bg-gray-100 text-gray-800',
-      REJECTED:             'bg-black text-white',
-      ACCEPTED:             'bg-white text-black border border-black',
-    }
-    return <Badge className={`${variants[s]} font-medium`}>{s}</Badge>
-  }
+      "TO BE STRUCTURIZED": "bg-gray-100 text-gray-800",
+      "TO BE VALIDATED": "bg-gray-100 text-gray-800",
+      VALIDATED: "bg-gray-100 text-gray-800",
+      REJECTED: "bg-black text-white",
+      ACCEPTED: "bg-white text-black border border-black",
+    };
+    return <Badge className={`${variants[s]} font-medium`}>{s}</Badge>;
+  };
 
   const formatDate = (iso: string) =>
-    new Date(iso).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
+    new Date(iso).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
 
   const renderFileLinks = (t: Termsheet) => {
-    if (t.status === 'ACCEPTED' && t.validatedsheetFile) {
+    if (t.ourtermsheetFile) {
+      return (
+        <a
+          href={t.ourtermsheetFile.s3Link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-black underline hover:text-gray-700 text-xs"
+        >
+          Our Term Sheet
+        </a>
+      );
+    }
+    if (t.status === "ACCEPTED" && t.validatedsheetFile) {
       return (
         <a
           href={t.validatedsheetFile.s3Link}
@@ -117,39 +126,45 @@ export default function Adminpage() {
         >
           Validated Sheet
         </a>
-      )
+      );
     }
+    // fallback placeholders
+    const placeholders: string[] = [];
+    if (t.mapsheetFile) placeholders.push("Map Sheet");
+    if (t.structuredsheetFile) placeholders.push("Structured Sheet");
+    if (t.validatedsheetFile) placeholders.push("Validated Sheet");
+    if (t.coloursheetFile) placeholders.push("Colour Sheet");
+
     return (
       <div className="flex flex-col gap-1 text-xs text-gray-500">
-        {t.mapsheetFile        && <span>Map Sheet</span>}
-        {t.structuredsheetFile && <span>Structured Sheet</span>}
-        {t.ourtermsheetFile    && <span>Our Term Sheet</span>}
-        {t.validatedsheetFile  && <span>Validated Sheet</span>}
-        {/* If you’ve removed coloursheetFile on the backend, you can omit this line */}
-        {t.coloursheetFile     && <span>Colour Sheet</span>}
+        {placeholders.map((label) => (
+          <span key={`${t.id}-${label}`}>{label}</span>
+        ))}
       </div>
-    )
-  }
+    );
+  };
 
   const filtered = termsheetData.filter((t) => {
     const matchSearch =
       t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.organisation.name.toLowerCase().includes(searchTerm.toLowerCase())
+      t.organisation.name.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return selectedStatus === 'ALL'
+    return selectedStatus === "ALL"
       ? matchSearch
-      : matchSearch && t.status === selectedStatus
-  })
+      : matchSearch && t.status === selectedStatus;
+  });
 
   const counts = {
-    total:      termsheetData.length,
-    toBeStruct: termsheetData.filter((t) => t.status === 'TO BE STRUCTURIZED').length,
-    toBeValid:  termsheetData.filter((t) => t.status === 'TO BE VALIDATED').length,
-    validated:  termsheetData.filter((t) => t.status === 'VALIDATED').length,
-    rejected:   termsheetData.filter((t) => t.status === 'REJECTED').length,
-    accepted:   termsheetData.filter((t) => t.status === 'ACCEPTED').length,
-  }
+    total: termsheetData.length,
+    toBeStruct: termsheetData.filter((t) => t.status === "TO BE STRUCTURIZED")
+      .length,
+    toBeValid: termsheetData.filter((t) => t.status === "TO BE VALIDATED")
+      .length,
+    validated: termsheetData.filter((t) => t.status === "VALIDATED").length,
+    rejected: termsheetData.filter((t) => t.status === "REJECTED").length,
+    accepted: termsheetData.filter((t) => t.status === "ACCEPTED").length,
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
@@ -176,13 +191,13 @@ export default function Adminpage() {
         <div className="grid grid-cols-6 gap-6 mb-8">
           {Object.entries(counts).map(([key, cnt]) => {
             const labels: Record<string, string> = {
-              total: 'Total',
-              toBeStruct: 'To Structure',
-              toBeValid: 'To Validate',
-              validated: 'Validated',
-              rejected: 'Rejected',
-              accepted: 'Accepted',
-            }
+              total: "Total",
+              toBeStruct: "To Structure",
+              toBeValid: "To Validate",
+              validated: "Validated",
+              rejected: "Rejected",
+              accepted: "Accepted",
+            };
             return (
               <Card key={key} className="border border-gray-200 shadow-sm">
                 <CardContent className="p-4">
@@ -194,7 +209,7 @@ export default function Adminpage() {
                   </span>
                 </CardContent>
               </Card>
-            )
+            );
           })}
         </div>
 
@@ -229,9 +244,7 @@ export default function Adminpage() {
                   }
                 >
                   <option value="ALL">All Statuses</option>
-                  <option value="TO BE STRUCTURIZED">
-                    To Be Structurized
-                  </option>
+                  <option value="TO BE STRUCTURIZED">To Be Structurized</option>
                   <option value="TO BE VALIDATED">To Be Validated</option>
                   <option value="VALIDATED">Validated</option>
                   <option value="REJECTED">Rejected</option>
@@ -282,28 +295,29 @@ export default function Adminpage() {
                     <TableCell>
                       <div className="flex -ml-2">
                         {t.organisation.users.slice(0, 3).map((u, i) => (
-                          <div
+                          <Avatar
                             key={u.user.userId}
-                            className="-ml-2 first:ml-0"
+                            className="h-8 w-8 mr-2"
                             style={{ zIndex: 10 - i }}
                           >
-                            <Avatar className="h-8 w-8 mr-2">
-                              <AvatarImage
-                                src={`/api/placeholder/40/40`}
-                                alt={u.user.name}
-                              />
-                              <AvatarFallback className="bg-gray-100 text-gray-800 text-sm font-medium">
-                                {u.user.name
-                                  .split(' ')
-                                  .map((p) => p[0])
-                                  .join('')
-                                  .substring(0, 2)}
-                              </AvatarFallback>
-                            </Avatar>
-                          </div>
+                            <AvatarImage
+                              src={`/api/placeholder/40/40`}
+                              alt={u.user.name}
+                            />
+                            <AvatarFallback className="bg-gray-100 text-gray-800 text-sm font-medium">
+                              {u.user.name
+                                .split(" ")
+                                .map((p) => p[0])
+                                .join("")
+                                .substring(0, 2)}
+                            </AvatarFallback>
+                          </Avatar>
                         ))}
                         {t.organisation.users.length > 3 && (
-                          <Avatar className="h-8 w-8 -ml-2">
+                          <Avatar
+                            key="overflow"
+                            className="h-8 w-8 -ml-2"
+                          >
                             <AvatarFallback className="bg-gray-100 text-gray-800 text-sm font-medium">
                               +{t.organisation.users.length - 3}
                             </AvatarFallback>
@@ -316,7 +330,7 @@ export default function Adminpage() {
                         size="sm"
                         className="bg-black text-white hover:bg-gray-800"
                         onClick={() =>
-                          navigate(`/admin/termsheet/${orgId}`)
+                          navigate(`/admin/${orgId}/termsheet/${t.id}`)
                         }
                       >
                         View
@@ -327,7 +341,10 @@ export default function Adminpage() {
                 ))}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-gray-500">
+                    <TableCell
+                      colSpan={7}
+                      className="h-24 text-center text-gray-500"
+                    >
                       No termsheets found
                     </TableCell>
                   </TableRow>
@@ -347,5 +364,5 @@ export default function Adminpage() {
         </div>
       </footer>
     </div>
-  )
+  );
 }

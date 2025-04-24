@@ -1,19 +1,23 @@
+import React from "react"
 import { Routes, Route, Navigate } from "react-router-dom"
-import HomePage       from "./pages/Homepages/HomePage"
-import SignupPage     from "./pages/auth/SignupPage"
-import LoginPage      from "./pages/auth/LoginPage"
+
+import HomePage            from "./pages/Homepages/HomePage"
+import SignupPage          from "./pages/auth/SignupPage"
+import LoginPage           from "./pages/auth/LoginPage"
+import OrganisationPage    from "./pages/Mainpages/Organisationpage"
+import OrgidPage           from "./pages/Organisationpage/Orgid"
+import TermsheetPage       from "./pages/Organisationpage/PAGE"     // detail view
+import UploadingTermsheet  from "./pages/Mainpages/UploadingTermsheet"
+import AdminDashboard      from "./components/comps/admin/Adminpage"
+
 import { useUserStore } from "./services/auth.service"
-import OrganisationPage from "./pages/Mainpages/Organisationpage"
-import OrgidPage      from "./pages/Organisationpage/Orgid"
-import TermsheetPage  from "./pages/Organisationpage/PAGE"
-import AdminDashboard from "./components/comps/admin/Adminpage"
 
 export default function App() {
   const { user } = useUserStore()
 
   return (
     <Routes>
-      {/* Public routes */}
+      {/* Public */}
       <Route
         path="/"
         element={!user ? <HomePage /> : <OrganisationPage />}
@@ -27,11 +31,17 @@ export default function App() {
         element={!user ? <LoginPage /> : <Navigate to="/" replace />}
       />
 
-      {/* Organisation flows */}
+      {/* Organization flows */}
       <Route
         path="/org/:orgId"
         element={user ? <OrgidPage /> : <Navigate to="/" replace />}
       />
+      <Route
+        path="/org/:orgId/upload"
+        element={user ? <UploadingTermsheet /> : <Navigate to="/" replace />}
+      />
+
+      {/* Termsheet detail under org (read-only) */}
       <Route
         path="/termsheet/:orgId"
         element={user ? <TermsheetPage /> : <Navigate to="/" replace />}
@@ -47,8 +57,12 @@ export default function App() {
         element={user ? <AdminDashboard /> : <Navigate to="/" replace />}
       />
       <Route
-        path="/admin/termsheet/:orgId"
-        element={user ? <AdminDashboard /> : <Navigate to="/" replace />}
+    path="/org/:id/upload"
+    element={user ? <UploadingTermsheet /> : <Navigate to="/" replace />}
+  />
+      <Route
+        path="/admin/:orgId/termsheet/:termsheetId"
+        element={user ? <TermsheetPage /> : <Navigate to="/" replace />}
       />
 
       {/* Catch-all */}

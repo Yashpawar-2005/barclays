@@ -1,90 +1,58 @@
 // src/components/comps/admin/EmailInfoForm.tsx
 
-import { useState } from 'react'
+import React from 'react'
 import { Input } from '../../../ui/input'
-import { Button } from '../../../ui/button'
-import { Mail, Lock } from 'lucide-react'
+import { Lock, FileText } from 'lucide-react'
 
-interface EmailInfoFormProps {
+type EmailInfoFormProps = {
   email: string
-  setEmail: (email: string) => void
+  setEmail: (val: string) => void
+  password: string
+  setPassword: (val: string) => void
   orderId: string
-  setOrderId: (orderId: string) => void
+  setOrderId: (val: string) => void
+  termsheetName: string
+  setTermsheetName: (val: string) => void
+  error?: string | null
 }
 
 export const EmailInfoForm: React.FC<EmailInfoFormProps> = ({
   email,
   setEmail,
+  password,
+  setPassword,
   orderId,
   setOrderId,
+  termsheetName,
+  setTermsheetName,
+  error,
 }) => {
-  const [password, setPassword] = useState<string>('')
-  const [loading, setLoading] = useState<boolean>(false)
-
-  const handleExtract = async () => {
-    setLoading(true)
-    try {
-      const res = await fetch(
-        'http://localhost:4000/api/v1/fetch-order-email',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email,
-            password,
-            host: 'imap.gmail.com',
-            port: 993,
-            tls: true,
-            orderId,
-            organisationId: '42',
-          }),
-        }
-      )
-      const data = await res.json()
-      console.log('Fetched data:', data)
-      // TODO: surface `data` in UI or pass to parent
-    } catch (err) {
-      console.error('Error extracting from email:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const canExtract =
-    !!email.trim() && !!password.trim() && !!orderId.trim() && !loading
-
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-100">
       <h3 className="text-base font-semibold text-slate-800 mb-4 flex items-center">
-        <Mail className="h-4 w-4 mr-2 text-slate-600" />
-        Email Information
+        <Lock className="h-4 w-4 mr-2 text-slate-600" />
+        Email Extraction Details
       </h3>
+
+      {error && <p className="text-red-600 mb-4">{error}</p>}
+
       <div className="space-y-4">
-        {/* Email */}
         <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-slate-700 mb-2"
-          >
+          <label htmlFor="email" className="block text-sm font-medium mb-1">
             Email Address *
           </label>
           <Input
             id="email"
             type="email"
-            placeholder="Enter email address containing termsheet"
+            placeholder="your-email@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full border-slate-300 focus:border-slate-500 focus:ring-slate-500"
           />
         </div>
 
-        {/* Password */}
         <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-slate-700 mb-2"
-          >
-            Password *
+          <label htmlFor="password" className="block text-sm font-medium mb-1">
+            Email Password *
           </label>
           <div className="relative">
             <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -94,37 +62,40 @@ export const EmailInfoForm: React.FC<EmailInfoFormProps> = ({
               placeholder="Enter email password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+              className="pl-10"
             />
           </div>
         </div>
 
-        {/* Order ID */}
         <div>
-          <label
-            htmlFor="order-id"
-            className="block text-sm font-medium text-slate-700 mb-2"
-          >
+          <label htmlFor="order-id" className="block text-sm font-medium mb-1">
             Order ID *
           </label>
           <Input
             id="order-id"
-            placeholder="Enter order ID"
+            placeholder="Your order ID"
             value={orderId}
             onChange={(e) => setOrderId(e.target.value)}
-            className="w-full border-slate-300 focus:border-slate-500 focus:ring-slate-500"
           />
         </div>
 
-        {/* Extract Button */}
-        <div className="pt-4">
-          <Button
-            onClick={handleExtract}
-            disabled={!canExtract}
-            className="w-full bg-black text-white hover:bg-gray-800 disabled:opacity-50"
+        <div>
+          <label
+            htmlFor="termsheet-name"
+            className="block text-sm font-medium mb-1"
           >
-            {loading ? 'Extracting...' : 'Extract from email'}
-          </Button>
+            Termsheet Name *
+          </label>
+          <div className="relative">
+            <FileText className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+            <Input
+              id="termsheet-name"
+              placeholder="e.g. May 2025 Invoice"
+              value={termsheetName}
+              onChange={(e) => setTermsheetName(e.target.value)}
+              className="pl-10"
+            />
+          </div>
         </div>
       </div>
     </div>

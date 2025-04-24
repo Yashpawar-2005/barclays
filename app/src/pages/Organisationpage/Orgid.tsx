@@ -1,13 +1,31 @@
+// src/pages/Organisationpage/Orgid.tsx
 
-import { TermsheetSection } from '../../components/comps/Rightsidebars/Rightsidebar'
-import OrganizationSidebar from '../../components/comps/Sidebars.tsx/Leftsidebar2'
-const Orgid = () => {
+import React from "react";
+import { useParams, Link } from "react-router-dom";
+import { Button } from "../../components/ui/button";
+import OrganizationSidebar from "../../components/comps/Sidebars.tsx/Leftsidebar2";
+import { TermsheetSection } from "../../components/comps/Rightsidebars/Rightsidebar";
+
+export default function OrgidPage() {
+  const { id: orgId } = useParams<{ id: string }>();
+
   return (
-    <div className='flex flex-row'>
-     <OrganizationSidebar/>
-     <TermsheetSection/>
-    </div>
-  )
-}
+    <div className="flex flex-row">
+      <OrganizationSidebar />
 
-export default Orgid
+      <div className="flex-1 p-6 bg-gray-50">
+        {/* Upload button */}
+        <div className="mb-6">
+          <Link to={`/org/${orgId}/upload`}>
+            <Button className="bg-black text-white">
+              Upload Termsheet from Email
+            </Button>
+          </Link>
+        </div>
+
+        {/* existing listing/processing section */}
+        <TermsheetSection />
+      </div>
+    </div>
+  );
+}

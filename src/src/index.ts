@@ -1,11 +1,13 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
+
 import Authrouter from './routes/Auth.routes';
 import Organisztionrouter from './routes/Organization.routes';
 import termsheetRouter from './routes/Termsheet.route';
 import filerouter from './routes/File.routes';
-dotenv.config();
+
 import cookieParser from 'cookie-parser';
 import Discrepancieroute from './routes/Discrepancie.route';
 import router from './routes/emailroutes';
@@ -27,7 +29,7 @@ app.get("/satyam", (req, res) => {
   console.log("requeest")
   res.send('Hello, aefhuaehfuahWorld!');
 });
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 4000;
 
 
 

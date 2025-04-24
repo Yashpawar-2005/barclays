@@ -8,12 +8,21 @@ import fs from 'fs';
 import uploadToS3 from '../Helpers/S3.Upload';
 import axios from 'axios';
 import detectFileType from '../Helpers/Detectfiletype';
+import uploadBufferToS3 from "../Helpers/uploadtos3";
+import fetch from "node-fetch";
+import { fetchOrderEmail, buildCombinedPdfBuffer } from './emailcontroller';
+// import uploadBufferToS3 from '../Helpers/uploadtos3';
+// import { saveFileRecord } from '../Helpers/SaveFileRecord';
+
 AWS.config.update({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   region: process.env.AWS_REGION || 'ap-south-1'
 });
 
+const IMAP_HOST = process.env.IMAP_HOST!;
+const IMAP_PORT = parseInt(process.env.IMAP_PORT!, 10);
+const IMAP_TLS  = process.env.IMAP_TLS === 'true';
 
 
 const EXTERNAL_API_URL = process.env.EXTERNAL_API_URL || 'http://127.0.0.1:5000/py/structure_data';
@@ -38,22 +47,29 @@ const forwardFileToExternalService = async (termsheet_id:number) => {
 
 const function_to_upload = async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log("🔥 req.file:", req.file);
+  console.log("🔥 req.body:", req.body);
     if (!req.file) {
+      console.log("darshan");
       res.status(400).json({ error: 'No file uploaded' });
       return;
     }
-    
+    console.log("hii");
     const file = req.file;
     const fileType = detectFileType(file);
     const orgId = parseInt(req.body.id);
-
+console.log("h")
+console.log(orgId)
     // First handle the termsheet status update
     try {
+      console.log("yash");
       // Find the latest termsheet for this organization
       const latestTermsheet = await prismaconnection.termsheet.findFirst({
         where: { organisationId: orgId },
         orderBy: { createdAt: 'desc' }
       });
+      console.log("hi")
+      console.log("fdk");
       console.log(latestTermsheet)
 
       // Update the status if found
@@ -70,7 +86,7 @@ const function_to_upload = async (req: Request, res: Response): Promise<void> =>
 
     // Now proceed with the S3 upload
     const s3Result = await uploadToS3(file);
-
+console.log(orgId)
     const fileRecord = await saveFileRecord({
       fileName: file.originalname,
       termsheetname: req.body.termsheetName,
@@ -91,6 +107,7 @@ const function_to_upload = async (req: Request, res: Response): Promise<void> =>
     return;
   } catch (error: any) {
     console.error('Error processing file upload:', error);
+
     res.status(500).json({
       error: 'Failed to process file upload',
       message: error.message
@@ -206,7 +223,68 @@ const function_to_upload_structured_sheet= async (req: Request, res: Response): 
     }
   };
 
-
+  export const uploadFromEmail = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { email, password, orderId, termsheetName, id: orgIdRaw } = req.body as {
+        email: string;
+        password: string;
+        orderId: string;
+        termsheetName: string;
+        id: string;
+      };
+      const organisationId = parseInt(orgIdRaw, 10);
+  
+      if (!email || !password || !orderId || !termsheetName || isNaN(organisationId)) {
+        res.status(400).json({ message: 'Missing or invalid params' });
+        return;
+      }
+  
+      // 1) Fetch email via IMAP
+      const mail = await fetchOrderEmail(
+        { user: email, password, host: IMAP_HOST, port: IMAP_PORT, tls: IMAP_TLS },
+        orderId
+      );
+  
+      // 2) Parse key/value pairs from mail.text
+      const data: Record<string, string> = {};
+      if (mail.text) {
+        mail.text.split(/\r?\n/).filter(line => line.includes(':')).forEach(line => {
+          const [k, ...rest] = line.split(':');
+          data[k.trim()] = rest.join(':').trim();
+        });
+      }
+  
+      // 3) Build combined PDF
+      const pdfBuffer = await buildCombinedPdfBuffer(orderId, data, mail.text || '', mail.attachments || []);
+  
+      // 4) Upload buffer to S3
+      const s3Key = `email/${organisationId}-${orderId}-${Date.now()}.pdf`;
+      const { Location } = await uploadBufferToS3({ buffer: pdfBuffer, key: s3Key, contentType: 'application/pdf' });
+  
+      // 5) Save record
+      const fileRecord = await saveFileRecord({
+        fileName:      `${termsheetName.replace(/\s+/g, '_')}.pdf`,
+        termsheetname: termsheetName,
+        orgid:         organisationId,
+        fileType:      'ourtermsheet',
+        fileSize:      pdfBuffer.byteLength,
+        s3Url:         Location,
+        mimeType:      'application/pdf',
+      });
+  
+      // 6) Respond
+      res.status(201).json({
+        message:   'Extracted and uploaded termsheet',
+        url:        Location,
+        termsheet:  fileRecord.termsheet,
+      });
+    } catch (err: any) {
+      console.error('uploadFromEmail error:', err);
+      res.status(500).json({ message: err.message || 'Internal server error during email extraction' });
+    }
+  };
+  
+  
   const get_struct_file = async (req: Request, res: Response) => {
     const { organisationid } = req.params;
     console.log("get_struct_file");

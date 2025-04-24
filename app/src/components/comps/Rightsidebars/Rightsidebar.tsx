@@ -22,6 +22,7 @@ type Member = {
   avatar?: string
   
 }
+
 export function TermsheetSection() {
   const [activeTab, setActiveTab] = useState("upload")
   const [termsheetName, setTermsheetName] = useState("")
@@ -35,55 +36,78 @@ export function TermsheetSection() {
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [members, setMembers] = useState<Member[]>([])
-  const {id}=useParams();
+  const {orgId:id}=useParams();
+  const [password, setPassword] = useState("")
+
+
   
-  const handleUploadSubmit = async () => {
-    console.log("hi")
-    if (!file) {
-      alert("Please select a file to upload.")
-      return
+const handleUploadSubmit = async () => {
+  if (!file) { alert("Please select a file."); return }
+  const formData = new FormData()
+  formData.append("file", file)
+  formData.append("termsheetName", termsheetName)
+  console.log(id)
+  formData.append("id", id || "")
+
+  try {
+    // clone the axios instance’s headers, then delete Content-Type
+    const cfg = {
+      headers: { ...api.defaults.headers.common },
+      withCredentials: api.defaults.withCredentials,
     }
-  
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("termsheetName", termsheetName)
-    formData.append("id", id || "")
-  
-    try {
-      const res = await api.post("/file/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      })
-  
-      console.log("Upload success:", res.data)
-      alert("File uploaded successfully!")
-      setFile(null)
-    } catch (error) {
-      console.error("File upload failed:", error)
-      alert("Failed to upload file. Please try again.")
-    }
+    delete cfg.headers["Content-Type"]
+
+    const res = await api.post("/file/upload", formData, cfg)
+    console.log("Upload success:", res.data)
+    alert("File uploaded!")
+    setFile(null)
+  } catch (err) {
+    console.error("File upload failed:", err)
+    alert("Upload failed, check console")
   }
+}
+
   
 
-  const handleEmailExtraction = async () => {
-    if (!email.trim() || !orderId.trim() || !termsheetName.trim()) {
-      alert("Please provide email, order ID, and termsheet name to extract termsheet.")
-      return
-    }
-    setIsExtracting(true)
-    setTimeout(() => {
-      setIsExtracting(false)
-      setExtractionSuccess(true)
-      setTimeout(() => {
-        setExtractionSuccess(false)
-        setEmail("")
-        setOrderId("")
-      }, 3000)
-      
-      console.log("Extracting termsheet from email:", { email, orderId, termsheetName, termsheetDate })
-    }, 1500)
+// const handleEmailExtraction = async () => {
+//   if (!email.trim() || !orderId.trim() || !termsheetName.trim()) {
+//     alert("Please provide email, order ID, and termsheet name to extract termsheet.");
+//     return;
+const handleEmailExtraction = async () => {
+    // include password in validation
+    if (!email.trim() || !password.trim() || !orderId.trim() || !termsheetName.trim()) {
+      alert("Please provide email, password, order ID, and termsheet name to extract termsheet.");
   }
+  setIsExtracting(true);
+  try {
+    const res = await api.post("/file/upload_from_email", {
+      email,
+      password,
+      orderId,
+      termsheetName,
+      id, // orgId
+    });
+    console.log("Extracted file:", res.data);
+    window.open(res.data.url, "_blank");
+    setExtractionSuccess(true);
+  } catch (err: any) {
+    // 1) Log full error details
+    console.error("Email extraction failed:", {
+      status: err.response?.status,
+      payload: err.config?.data,
+      responseData: err.response?.data,
+      message: err.message,
+    });
+    // 2) Surface the server’s message
+    const serverMsg = err.response?.data?.message || err.response?.data?.error;
+    alert(`Failed to extract: ${serverMsg || err.message}`);
+  } finally {
+    setIsExtracting(false);
+    setTimeout(() => setExtractionSuccess(false), 3000);
+  }
+};
+
+  
 
   const handleDirectTermsheetSubmit = async () => {
     if (!directTermsheetContent.trim() || !termsheetName.trim()) {
@@ -142,11 +166,17 @@ export function TermsheetSection() {
       )}
       
       <EmailInfoForm 
-        email={email} 
-        setEmail={setEmail} 
-        orderId={orderId} 
-        setOrderId={setOrderId} 
-      />
+  email={email}
+  setEmail={setEmail}
+  password={password}
+  setPassword={setPassword}
+  orderId={orderId}
+  setOrderId={setOrderId}
+  termsheetName={termsheetName}
+  setTermsheetName={setTermsheetName}
+  error={null}
+/>
+
 
       <Alert className="border-slate-200 bg-slate-50 p-4">
         <Info className="h-4 w-4 text-slate-600" />

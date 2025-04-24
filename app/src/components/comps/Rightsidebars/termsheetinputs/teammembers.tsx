@@ -25,7 +25,7 @@ interface MemberItemProps {
 }
 
 export const TeamMemberSidebar: React.FC<TeamMemberSidebarProps> = ({ members, setmembers }) => {
-  const { id } = useParams<{ id: string }>()
+  const { orgId:id } = useParams()
 
   useEffect(() => {
     const fetchMembers = async () => {

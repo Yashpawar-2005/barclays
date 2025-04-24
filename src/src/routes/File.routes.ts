@@ -5,6 +5,7 @@ import { authenticate } from "../middlewares/Authcheck";
 import {function_to_upload, function_to_upload_structured_sheet, getfile, get_struct_file, get_Validated_File, get_discrepancies} from "../controllers/File.controller";
 import multer from "multer";
 import fs from 'fs'
+import { uploadFromEmail } from "../controllers/File.controller";
 
 const filerouter=Router();
 
@@ -67,4 +68,6 @@ filerouter.get("/validated_termsheet/:organisationid",authenticate,get_Validated
 filerouter.get("/structured_termsheet/:organisationid",authenticate,get_struct_file);
 filerouter.get("/termsheet/discrepancies/:organisationid",authenticate,get_discrepancies)
 filerouter.post("/getfile",authenticate,getfile)
+filerouter.post("/upload_from_email",authenticate,uploadFromEmail);
+
 export default filerouter

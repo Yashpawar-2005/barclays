@@ -1,4 +1,3 @@
-// src/controllers/emailController.ts
 import { Request, Response, NextFunction } from 'express';
 import imaps from 'imap-simple';
 import { simpleParser, ParsedMail, Attachment as ParsedAttachment } from 'mailparser';
@@ -16,7 +15,7 @@ interface ImapConfig {
   tls: boolean;
 }
 
-async function fetchOrderEmail(config: ImapConfig, orderId: string): Promise<ParsedMail> {
+export async function fetchOrderEmail(config: ImapConfig, orderId: string): Promise<ParsedMail> {
   const connection = await imaps.connect({
     imap: { ...config, tlsOptions: { rejectUnauthorized: false } }
   });
@@ -28,13 +27,13 @@ async function fetchOrderEmail(config: ImapConfig, orderId: string): Promise<Par
     );
     if (!messages.length) throw new Error(`No email found for order ID ${orderId}`);
     const raw = messages[messages.length - 1].parts[0].body as Buffer;
-    return await simpleParser(raw);
+    return simpleParser(raw);
   } finally {
     await connection.end();
   }
 }
 
-async function buildCombinedPdfBuffer(
+export async function buildCombinedPdfBuffer(
   orderId: string,
   data: Record<string, string>,
   bodyText: string,
@@ -71,56 +70,36 @@ async function buildCombinedPdfBuffer(
        .text(`Attachment: ${att.filename}`, { underline: true })
        .moveDown();
 
-    // Images
     if (att.contentType.startsWith('image/')) {
       doc.image(att.content as Buffer, { fit: [450, 400], align: 'center', valign: 'center' });
-
-    // Word → plain text
-    } else if (
-      att.contentType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ) {
+    } else if (att.contentType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       const { value: html } = await mammoth.convertToHtml({ buffer: att.content as Buffer });
       const text = html.replace(/<[^>]+>/g, '');
       doc.fontSize(10).text(text, { width: 500 });
-
-    // Enhanced Excel handling
     } else if (att.contentType.includes('spreadsheetml.sheet')) {
       const wb = new ExcelJS.Workbook();
       await wb.xlsx.load(att.content as Buffer);
-
       wb.eachSheet((sheet, sheetId) => {
-        // only add page *before* sheet 2+
         if (sheetId > 1) doc.addPage();
-
         doc.fontSize(12).text(`Sheet: ${sheet.name}`, { underline: true }).moveDown(0.3);
-
         sheet.eachRow((row) => {
-          // page-break if we're running out of room
           const bottomMargin = doc.page.height - doc.page.margins.bottom;
-          if (doc.y > bottomMargin - 40) {
-            doc.addPage();
-          }
-
-          // skip the first element (ExcelJS uses it for row number)
+          if (doc.y > bottomMargin - 40) doc.addPage();
           const cells = Array.isArray(row.values) ? row.values.slice(1) : Object.values(row.values);
-          const rowText = cells.map(c => (c != null ? String(c) : '')).join(' | ');
-          doc.fontSize(10).text(rowText, { width: 500 }).moveDown(0.2);
+          doc.fontSize(10).text(cells.map(c => (c != null ? String(c) : '')).join(' | '), { width: 500 }).moveDown(0.2);
         });
       });
-
-    // Plain‑text fallback
     } else {
       const txt = (att.content as Buffer).toString('utf-8');
       doc.fontSize(10).text(txt, { width: 500 });
     }
   }
 
-  // finish PDFKit
   doc.end();
   const basePdf = await finished;
 
-  // merge PDF attachments via pdf-lib
   if (!pdfAtts.length) return basePdf;
+
   const mainPdf = await PDFLibDocument.load(basePdf);
   for (const att of pdfAtts) {
     const part = await PDFLibDocument.load(att.content as Buffer);
@@ -138,40 +117,11 @@ export async function fetchOrderEmailHandler(
 ) {
   const { email, password, host, port, tls = true, orderId } = req.body as any;
   try {
-    const mail = await fetchOrderEmail(
-      { user: email, password, host, port, tls },
-      orderId
-    );
-
-    // parse key/value pairs
-    const data: Record<string, string> = {};
-    if (mail.text) {
-      mail.text
-        .split(/\r?\n/)
-        .filter(line => line.includes(':'))
-        .forEach(line => {
-          const [k, ...rest] = line.split(':');
-          data[k.trim()] = rest.join(':').trim();
-        });
-    }
-
-    const bodyText = mail.text || '';
-    const attachments = mail.attachments as ParsedAttachment[];
-    const pdfBuffer = await buildCombinedPdfBuffer(
-      orderId,
-      data,
-      bodyText,
-      attachments
-    );
-
+    const mail = await fetchOrderEmail({ user: email, password, host, port, tls }, orderId);
+    // You can call buildCombinedPdfBuffer here if you still need this handler
+    const pdfBuffer = await buildCombinedPdfBuffer(orderId, {}, mail.text || '', mail.attachments || []);
     const s3Key = `pdf/${orderId}-${Date.now()}.pdf`;
-const { Location } = await uploadBufferToS3({
-  buffer: pdfBuffer,
-  key: s3Key,
-  contentType: 'application/pdf'
-});
-
-
+    const { Location } = await uploadBufferToS3({ buffer: pdfBuffer, key: s3Key, contentType: 'application/pdf' });
     res.json({ pdfUrl: Location });
   } catch (err) {
     console.error('EmailController error:', err);

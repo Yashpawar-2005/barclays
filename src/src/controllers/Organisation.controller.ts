@@ -70,6 +70,8 @@ export const add_user = async (req: Request, res: Response): Promise<void> => {
 
 export const get_members = async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log("darsh")
+    console.log(req.params.organisationId);
     const organisationId = Number(req.params.organisationId);
     const organisation = await prismaconnection.organisation.findUnique({
       where: { id: organisationId }, include: { users: { include: { user: true } } },

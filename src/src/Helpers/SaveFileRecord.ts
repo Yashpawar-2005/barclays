@@ -23,7 +23,6 @@ const saveFileRecord = async (fileData: {
         data: {
           title: fileData.termsheetname,
           organisationId: fileData.orgid,
-          //@ts-ignore
           ourtermsheetFileId: fileRecord.id
         }
       });
