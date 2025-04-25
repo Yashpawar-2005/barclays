@@ -5,24 +5,24 @@
 from langchain_core.documents import Document
 
 import cv2
-import pytesseract
+# import pytesseract
 import fitz  # Changed from pymupdf to fitz
 import pandas as pd
 import platform
 
-if platform.system()=='Windows':
-    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# if platform.system()=='Windows':
+#     pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 
-def extract_img_content(img_path):
+# def extract_img_content(img_path):
     
-    img = cv2.imread(img_path)
-    img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-    text = []
-    img_str = pytesseract.image_to_string(img_path)
-    text.extend(img_str.splitlines())
+#     img = cv2.imread(img_path)
+#     img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+#     text = []
+#     img_str = pytesseract.image_to_string(img_path)
+#     text.extend(img_str.splitlines())
 
-    return text
+#     return text
 
 def extract_word_content(word_path):
     result = ""

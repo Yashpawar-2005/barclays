@@ -1,9 +1,9 @@
 from dotenv import load_dotenv
 import os
 import boto3
-import json
+
 from PIL import Image
-import io
+
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as ReportLabImage
 from reportlab.lib import colors

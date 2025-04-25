@@ -2,7 +2,7 @@ import sys
 import os
 import pandas as pd
 import json
-from transformers import AutoTokenizer
+# from transformers import AutoTokenizer
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from data_extraction.clean_data import preprocess_data
