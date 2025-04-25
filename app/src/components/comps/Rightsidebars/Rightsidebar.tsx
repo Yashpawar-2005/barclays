@@ -50,7 +50,7 @@ const handleUploadSubmit = async () => {
   formData.append("id", id || "")
 
   try {
-    // clone the axios instance’s headers, then delete Content-Type
+    // clone the axios instance's headers, then delete Content-Type
     const cfg = {
       headers: { ...api.defaults.headers.common },
       withCredentials: api.defaults.withCredentials,
@@ -98,7 +98,7 @@ const handleEmailExtraction = async () => {
       responseData: err.response?.data,
       message: err.message,
     });
-    // 2) Surface the server’s message
+    // 2) Surface the server's message
     const serverMsg = err.response?.data?.message || err.response?.data?.error;
     alert(`Failed to extract: ${serverMsg || err.message}`);
   } finally {
@@ -239,28 +239,28 @@ const handleEmailExtraction = async () => {
   )
 
   return (
-    <div className="h-screen flex-1 flex-col overflow-scroll bg-slate-50 ">
-      <Card className="flex-1 flex flex-col overflow-hidden border-0 shadow-lg rounded-xl m-4">
-        <div className="p-8 bg-gradient-to-r from-slate-800 to-slate-900 text-white">
+    <div className="h-screen flex-1 flex-col overflow-auto bg-gray-50">
+      <Card className="flex-1 flex flex-col border-0 shadow-lg rounded-xl m-4">
+        <div className="p-8 bg-gradient-to-r from-indigo-800 to-indigo-900 text-white flex-shrink-0">
           <h2 className="text-2xl font-semibold tracking-tight flex items-center">
             <FileText className="h-6 w-6 mr-3" />
-            Termsheet Management
+            Document Management
           </h2>
-          <p className="text-slate-300 mt-2">Upload, extract from emails, or input termsheets directly</p>
+          <p className="text-indigo-200 mt-2">Upload, extract from emails, or input documents directly</p>
         </div>
 
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col">
           <div className="flex h-full">
             {/* Main content area */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col">
               <Tabs 
                 defaultValue="upload" 
                 className="flex-1 flex flex-col"
                 onValueChange={setActiveTab}
                 value={activeTab}
               >
-                <div className="px-8 pt-6">
-                  <TabsList className="grid grid-cols-3 w-full bg-slate-100">
+                <div className="px-8 pt-6 flex-shrink-0">
+                  <TabsList className="grid grid-cols-3 w-full bg-gray-100">
                     <TabsTrigger value="upload" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-slate-900">
                       <Upload className="h-4 w-4" />
                       <span>Upload Termsheet</span>

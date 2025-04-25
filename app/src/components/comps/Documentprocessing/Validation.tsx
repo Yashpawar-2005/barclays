@@ -21,6 +21,11 @@ import {
   XIcon,
   InfoIcon,
   ClockIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  BarChart2,
+  FileTextIcon,
+  TableIcon,
 } from "lucide-react"
 import { useParams } from "react-router-dom"
 import { ScrollArea } from "../../ui/scroll-area"
@@ -49,6 +54,191 @@ interface DocumentViewerProps {
   url: string
 }
 
+type CSVData = string[][];
+
+const ValidationCSVViewer = ({ url }: { url: string }) => {
+  const [csvData, setCsvData] = useState<CSVData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentRecordIndex, setCurrentRecordIndex] = useState<number>(0);
+  const [viewMode, setViewMode] = useState<'card' | 'grid'>('grid');
+
+  useEffect(() => {
+    const fetchCSV = async (): Promise<void> => {
+      try {
+        setLoading(true);
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error("Failed to fetch CSV file");
+        }
+        
+        const text = await response.text();
+        const parsedData = parseCSV(text);
+        setCsvData(parsedData);
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching CSV:", err);
+        setError(err instanceof Error ? err.message : "Unknown error occurred");
+        setLoading(false);
+      }
+    };
+
+    if (url) {
+      fetchCSV();
+    }
+  }, [url]);
+
+  const parseCSV = (text: string): CSVData => {
+    const lines = text.split(/\r?\n/);
+    const data: CSVData = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].trim() === '') continue;
+      
+      const fields = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+      
+      const cleanFields = fields.map(field => 
+        field.startsWith('"') && field.endsWith('"') 
+          ? field.substring(1, field.length - 1) 
+          : field
+      );
+      
+      data.push(cleanFields);
+    }
+    
+    return data;
+  };
+
+  const handlePrevRecord = () => {
+    setCurrentRecordIndex(prev => Math.max(0, prev - 1));
+  };
+  
+  const handleNextRecord = () => {
+    setCurrentRecordIndex(prev => Math.min((csvData?.length || 2) - 2, prev + 1));
+  };
+
+  if (loading) return <div className="flex justify-center items-center h-full"><Skeleton className="h-48 sm:h-64 w-full" /></div>;
+  if (error) return <Alert variant="destructive"><AlertDescription>Error loading CSV: {error}</AlertDescription></Alert>;
+  if (!csvData || csvData.length < 2) return <div className="flex items-center justify-center h-full text-gray-500 p-4">No valid CSV data found</div>;
+
+  const headers = csvData[0];
+  const rows = csvData.slice(1);
+  
+  return (
+    <div className="space-y-3 sm:space-y-4 h-full">
+      <div className="flex flex-wrap justify-between items-center mb-2 sm:mb-4 gap-2">
+        <div className="flex flex-wrap space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setViewMode('card')}
+            className={`text-xs py-1 px-2 h-auto ${viewMode === 'card' ? 'bg-gray-100' : ''}`}
+          >
+            Card View
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setViewMode('grid')}
+            className={`text-xs py-1 px-2 h-auto ${viewMode === 'grid' ? 'bg-gray-100' : ''}`}
+          >
+            Grid View
+          </Button>
+        </div>
+
+        {viewMode === 'card' && (
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePrevRecord}
+              disabled={currentRecordIndex === 0}
+              className="text-xs py-1 px-1.5 h-auto"
+            >
+              <ChevronLeftIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+            </Button>
+            <span className="text-xs sm:text-sm font-medium">
+              Record {currentRecordIndex + 1} of {rows.length}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNextRecord}
+              disabled={currentRecordIndex >= rows.length - 1}
+              className="text-xs py-1 px-1.5 h-auto"
+            >
+              <ChevronRightIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <div className="overflow-auto h-[calc(100%-4rem)]">
+        {viewMode === 'card' ? (
+          <Card className="shadow-sm border border-gray-200 overflow-hidden bg-white">
+            <div className="p-2 sm:p-4 bg-gray-50 border-b border-gray-200">
+              <h3 className="font-medium text-sm sm:text-base">Record {currentRecordIndex + 1}</h3>
+            </div>
+            <div className="divide-y divide-gray-100 overflow-auto max-h-[calc(100vh-22rem)]">
+              {headers.map((header, index) => (
+                <div key={index} className="flex flex-col sm:flex-row p-2 sm:p-4 hover:bg-gray-50">
+                  <div className="w-full sm:w-1/3 font-medium text-xs sm:text-sm text-gray-700 mb-1 sm:mb-0">
+                    {header}
+                  </div>
+                  <div className="w-full sm:w-2/3 text-xs sm:text-sm text-gray-900">
+                    {rows[currentRecordIndex]?.[index] || '-'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 border border-gray-200 text-xs sm:text-sm">
+              <thead className="bg-gray-50 sticky top-0 z-10">
+                <tr>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Field Name
+                  </th>
+                  {rows.slice(0, 10).map((_, rowIndex) => (
+                    <th key={rowIndex} className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Record {rowIndex + 1}
+                    </th>
+                  ))}
+                  {rows.length > 10 && (
+                    <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      ...
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {headers.map((header, headerIndex) => (
+                  <tr key={headerIndex} className={headerIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">
+                      {header}
+                    </td>
+                    {rows.slice(0, 10).map((row, rowIndex) => (
+                      <td key={rowIndex} className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-500">
+                        {row[headerIndex] || '-'}
+                      </td>
+                    ))}
+                    {rows.length > 10 && (
+                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-500">
+                        ...
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const DocumentViewer = ({ url }: DocumentViewerProps) => {
   const [fileType, setFileType] = useState("")
 
@@ -66,6 +256,14 @@ const DocumentViewer = ({ url }: DocumentViewerProps) => {
     setFileType(detectFileType())
   }, [url])
 
+  if (fileType === "csv") {
+    return <ValidationCSVViewer url={url} />
+  }
+  
+  if (fileType === "office" && url.toLowerCase().endsWith(".xlsx") || url.toLowerCase().endsWith(".xls")) {
+    return <ValidationCSVViewer url={url} />
+  }
+
   const googleDocsViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(
     url
   )}&embedded=true`
@@ -73,15 +271,7 @@ const DocumentViewer = ({ url }: DocumentViewerProps) => {
   if (fileType === "pdf" || fileType === "image") {
     return <iframe src={url} className="w-full h-full border-0" title="Document Viewer" />
   }
-  if (fileType === "office" || fileType === "csv") {
-    return (
-      <iframe
-        src={googleDocsViewerUrl}
-        className="w-full h-full border-0"
-        title="Document Viewer"
-      />
-    )
-  }
+  
   return (
     <div className="w-full h-full flex flex-col items-center justify-center space-y-4 text-gray-600">
       <FileTypeIcon size={48} />
@@ -257,8 +447,8 @@ const DiscrepancyItem = ({
 }
 
 const ValidationSheet = () => {
-  const { orgid } = useParams<{ orgid: string }>()
-  const termsheetId = orgid ? parseInt(orgid, 10) : null
+  const { orgId } = useParams<{ orgId: string }>()
+  const termsheetId = orgId ? parseInt(orgId, 10) : null
 
   const [termsheetUrl, setTermsheetUrl] = useState("")
   const [isLoading, setIsLoading] = useState(true)
@@ -275,7 +465,7 @@ const ValidationSheet = () => {
     const fetchValidated = async () => {
       setIsLoading(true)
       try {
-        const { data } = await api.get(`/file/validated_termsheet/${orgid}`)
+        const { data } = await api.get(`/file/validated_termsheet/${orgId}`)
         setTermsheetUrl(data.url || "")
         setTermsheetStatus(data.status || "")
       } catch {
@@ -285,14 +475,14 @@ const ValidationSheet = () => {
       }
     }
     fetchValidated()
-  }, [termsheetId, orgid])
+  }, [termsheetId, orgId])
 
   useEffect(() => {
     if (!termsheetId) return
     const fetchDiscrepancies = async () => {
       setIsLoading(true)
       try {
-        const { data } = await api.get(`/file/termsheet/discrepancies/${orgid}`)
+        const { data } = await api.get(`/file/termsheet/discrepancies/${orgId}`)
         setDiscrepancies(data.data || [])
         setUserRole(data.role)
       } catch {
@@ -302,7 +492,7 @@ const ValidationSheet = () => {
       }
     }
     fetchDiscrepancies()
-  }, [termsheetId, orgid])
+  }, [termsheetId, orgId])
 
   const pendingCount = discrepancies.filter(d =>
     userRole.toLowerCase() === "admin" ? d.acceptedbyadmin === null : d.acceptedbyrole === null
@@ -322,7 +512,7 @@ const ValidationSheet = () => {
     setIsActionInProgress(true)
     try {
       await api.post(
-        `/discrepancie/termsheet/${orgid}/discrepancies/${id}/accept`
+        `/discrepancie/termsheet/${orgId}/discrepancies/${id}/accept`
       )
       setDiscrepancies(ds =>
         ds.map(d =>
@@ -347,7 +537,7 @@ const ValidationSheet = () => {
     setIsActionInProgress(true)
     try {
       await api.post(
-        `/discrepancie/termsheet/${orgid}/discrepancies/${id}/reject`
+        `/discrepancie/termsheet/${orgId}/discrepancies/${id}/reject`
       )
       setDiscrepancies(ds =>
         ds.map(d =>
@@ -372,7 +562,7 @@ const ValidationSheet = () => {
     setIsActionInProgress(true)
     try {
       await api.post(
-        `/discrepancie/termsheet/${orgid}/discrepancies/accept`
+        `/discrepancie/termsheet/${orgId}/discrepancies/accept`
       )
       setDiscrepancies(ds =>
         ds.map(d => ({
@@ -393,7 +583,7 @@ const ValidationSheet = () => {
     setIsActionInProgress(true)
     try {
       await api.post(
-        `/discrepancie/termsheet/${orgid}/discrepancies/reject`
+        `/discrepancie/termsheet/${orgId}/discrepancies/reject`
       )
       setDiscrepancies(ds =>
         ds.map(d => ({
@@ -411,52 +601,78 @@ const ValidationSheet = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 flex-1">
-      <div className="flex-1 flex flex-col">
-        <header className="border-b bg-white p-4 shadow-sm">
-          <div className="flex justify-between items-center">
-            <h1 className="text-xl font-semibold text-gray-900">
-              Structured Termsheet Viewer
+    <div className="h-full w-full flex flex-col bg-white">
+      <header className="border-b bg-white p-3 sm:p-4 shadow-sm flex-shrink-0">
+        <div className="flex flex-wrap justify-between items-center gap-2">
+          <div className="flex items-center">
+            <h1 className="text-lg sm:text-xl font-semibold text-gray-900">
+              Structured Document Validation
             </h1>
-            <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="border-black text-black hover:bg-gray-100">
-                  <DownloadIcon className="mr-2 h-4 w-4" />
-                  Export
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[450px]">
-                <DialogHeader>
-                  <DialogTitle>Export Termsheet</DialogTitle>
-                </DialogHeader>
-                <div className="py-4">
-                  <p>Are you sure you want to export this termsheet?</p>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  {termsheetUrl && (
-                    <Button className="bg-black text-white hover:bg-gray-800">
-                      <a
-                        href={termsheetUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center text-sm"
-                      >
-                        <DownloadIcon className="h-4 w-4 mr-1" />
-                        Download
-                      </a>
-                    </Button>
-                  )}
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            {termsheetStatus && (
+              <Badge 
+                variant="outline" 
+                className="ml-2 bg-gray-50 text-gray-700 border-gray-200"
+              >
+                {termsheetStatus}
+              </Badge>
+            )}
           </div>
-        </header>
+          <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline"
+                className="border-gray-600 text-gray-600 hover:bg-gray-50 text-xs sm:text-sm py-1 sm:py-2 px-2 sm:px-3 h-auto"
+              >
+                <DownloadIcon className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                Export
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[450px] bg-white border-0 shadow-lg">
+              <DialogHeader className="border-b pb-4">
+                <DialogTitle className="text-lg font-semibold text-gray-900">Export Validated Document</DialogTitle>
+              </DialogHeader>
+              <div className="py-5 space-y-4">
+                <p className="text-sm text-gray-800">Choose a format to export this document:</p>
+                <div className="grid grid-cols-2 gap-4">
+                  {termsheetUrl && (
+                    <>
+                      <a 
+                        href={termsheetUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="flex flex-col items-center justify-center p-5 border border-gray-200 rounded-md bg-white hover:bg-gray-50 text-center shadow-sm"
+                      >
+                        <FileTextIcon className="h-9 w-9 mb-3 text-gray-700" />
+                        <span className="text-sm font-semibold text-gray-900">Original Format</span>
+                        <span className="text-xs text-gray-700 mt-1">Download as is</span>
+                      </a>
+                      <a 
+                        href={`${termsheetUrl}?format=csv`} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="flex flex-col items-center justify-center p-5 border border-gray-200 rounded-md bg-white hover:bg-gray-50 text-center shadow-sm"
+                      >
+                        <TableIcon className="h-9 w-9 mb-3 text-gray-700" />
+                        <span className="text-sm font-semibold text-gray-900">CSV Format</span>
+                        <span className="text-xs text-gray-700 mt-1">Download as CSV</span>
+                      </a>
+                    </>
+                  )}
+                </div>
+              </div>
+              <DialogFooter className="border-t pt-4">
+                <Button variant="outline" onClick={() => setIsExportDialogOpen(false)} className="w-full font-medium">
+                  Cancel
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </header>
 
+      <div className="flex-1 overflow-auto">
         {error && (
-          <Alert variant="destructive" className="m-4">
+          <Alert variant="destructive" className="mx-3 sm:mx-4 mt-3 sm:mt-4 flex-shrink-0">
             <AlertTriangleIcon className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
             <Button variant="ghost" size="sm" onClick={clearError} className="ml-auto">
@@ -465,24 +681,23 @@ const ValidationSheet = () => {
           </Alert>
         )}
 
-        <div className="flex-1 overflow-hidden p-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
+        <div className="p-3 sm:p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Document Viewer */}
-            <div className="lg:col-span-2 h-full">
-              <Card className="h-full shadow-sm border border-gray-200 bg-white">
-                <div className="p-4 border-b flex justify-between items-center">
-                  <h2 className="font-semibold text-lg">Document</h2>
-                </div>
-                <div className="p-4 h-[calc(100%-60px)]">
+            <div className="lg:col-span-2 flex flex-col">
+              <Card className="shadow-sm border border-gray-200 bg-white flex flex-col h-full">
+                <div className="flex-1 overflow-auto h-[550px] flex items-center justify-center">
                   {isLoading ? (
-                    <div className="space-y-4 h-full">
-                      <Skeleton className="h-8 w-1/2" />
-                      <Skeleton className="h-[calc(100%-40px)] w-full" />
+                    <div className="p-4 space-y-4 w-full">
+                      <Skeleton className="h-8 w-1/2 mx-auto" />
+                      <Skeleton className="h-[400px] w-full" />
                     </div>
                   ) : termsheetUrl ? (
-                    <DocumentViewer url={termsheetUrl} />
+                    <div className="h-full w-full overflow-auto">
+                      <DocumentViewer url={termsheetUrl} />
+                    </div>
                   ) : (
-                    <div className="flex items-center justify-center h-full text-gray-500">
+                    <div className="flex items-center justify-center h-full text-gray-500 p-4">
                       <p>No document available</p>
                     </div>
                   )}
@@ -491,11 +706,11 @@ const ValidationSheet = () => {
             </div>
 
             {/* Discrepancies Panel */}
-            <div className="lg:col-span-1 h-full">
-              <Card className="h-full shadow-sm border border-gray-200 bg-white">
-                <div className="p-4 border-b flex justify-between items-center">
+            <div className="lg:col-span-1 flex flex-col">
+              <Card className="shadow-sm border border-gray-200 bg-white flex flex-col h-full">
+                <div className="p-3 sm:p-4 border-b flex flex-wrap justify-between items-center gap-2 flex-shrink-0">
                   <div className="flex items-center">
-                    <h2 className="font-semibold text-lg">Discrepancies</h2>
+                    <h2 className="font-semibold text-base sm:text-lg text-gray-800">Discrepancies</h2>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -503,7 +718,7 @@ const ValidationSheet = () => {
                             <Badge variant={pendingCount ? "destructive" : "outline"}>
                               {pendingCount}
                             </Badge>
-                            <InfoIcon className="h-4 w-4 ml-1 text-gray-400" />
+                            <InfoIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1 text-gray-400" />
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -512,13 +727,13 @@ const ValidationSheet = () => {
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Button size="sm" variant="outline" onClick={toggleFilterMode}>
+                  <div className="flex flex-wrap items-center gap-3 mt-1">
+                    <Button size="sm" variant="outline" onClick={toggleFilterMode} className="text-xs py-1.5 px-3 h-auto">
                       {filterMode === "pending" ? "Show All" : "Show Pending"}
                     </Button>
                     <Button
                       size="sm"
-                      className="bg-black text-white hover:bg-gray-800"
+                      className="bg-gray-800 text-white hover:bg-gray-900 text-xs py-1.5 px-3 h-auto"
                       disabled={pendingCount === 0 || isActionInProgress}
                       onClick={handleAcceptAll}
                     >
@@ -527,7 +742,7 @@ const ValidationSheet = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="border-red-500 text-red-600 hover:bg-red-50"
+                      className="border-gray-500 text-gray-600 hover:bg-gray-50 text-xs py-1.5 px-3 h-auto"
                       disabled={pendingCount === 0 || isActionInProgress}
                       onClick={handleRejectAll}
                     >
@@ -535,7 +750,7 @@ const ValidationSheet = () => {
                     </Button>
                   </div>
                 </div>
-                <ScrollArea className="h-[calc(100%-60px)] p-4">
+                <div className="flex-1 overflow-auto p-3 sm:p-4">
                   {isLoading ? (
                     <div className="space-y-4">
                       <Skeleton className="h-24 w-full" />
@@ -553,29 +768,29 @@ const ValidationSheet = () => {
                       />
                     ))
                   ) : discrepancies.length && filterMode === "pending" ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                      <CheckIcon className="h-12 w-12 text-green-500 mb-4" />
-                      <p className="text-lg font-medium">All discrepancies resolved</p>
-                      <p className="text-sm mt-2">No pending issues to review</p>
-                      <Button variant="link" onClick={toggleFilterMode} className="mt-4">
+                    <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-gray-500">
+                      <CheckIcon className="h-8 w-8 sm:h-12 sm:w-12 text-green-500 mb-3 sm:mb-4" />
+                      <p className="text-base sm:text-lg font-medium">All discrepancies resolved</p>
+                      <p className="text-xs sm:text-sm mt-1 sm:mt-2">No pending issues to review</p>
+                      <Button variant="link" onClick={toggleFilterMode} className="mt-3 sm:mt-4 text-gray-600">
                         View all discrepancies
                       </Button>
                     </div>
                   ) : !discrepancies.length ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                      <CheckIcon className="h-12 w-12 text-green-500 mb-4" />
-                      <p className="text-lg font-medium">No discrepancies found</p>
-                      <p className="text-sm mt-2">The document has no issues to review</p>
+                    <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-gray-500">
+                      <CheckIcon className="h-8 w-8 sm:h-12 sm:w-12 text-green-500 mb-3 sm:mb-4" />
+                      <p className="text-base sm:text-lg font-medium">No discrepancies found</p>
+                      <p className="text-xs sm:text-sm mt-1 sm:mt-2">The document has no issues to review</p>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                      <p className="text-lg font-medium">No discrepancies to display</p>
-                      <Button variant="link" onClick={toggleFilterMode} className="mt-4">
+                    <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-gray-500">
+                      <p className="text-base sm:text-lg font-medium">No discrepancies to display</p>
+                      <Button variant="link" onClick={toggleFilterMode} className="mt-3 sm:mt-4 text-gray-600">
                         Switch to {filterMode === "all" ? "pending" : "all"} view
                       </Button>
                     </div>
                   )}
-                </ScrollArea>
+                </div>
               </Card>
             </div>
           </div>

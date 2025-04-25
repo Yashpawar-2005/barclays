@@ -96,28 +96,28 @@ const NewOrganizationTab = ({
           <Loader text="Loading members..." />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 flex-1 min-h-0">
-          <MemberList 
-            title="Available Members"
-            members={filteredMembers}
-            selectedMembers={selectedMembers}
-            onMemberClick={handleMemberSelection}
-            emptyMessage="No members found"
-            showRoleBadges
-            height="auto"
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 flex-1 min-h-0">
+        <MemberList 
+          title="Available Members"
+          members={filteredMembers}
+          selectedMembers={selectedMembers}
+          onMemberClick={handleMemberSelection}
+          emptyMessage="No members found"
+          showRoleBadges
+          height="auto"
             isLoading={isLoading}
-          />
-          
-          <MemberList 
-            title="Selected Members"
-            members={selectedMembers}
-            onRemove={removeMember}
-            emptyMessage="No members selected yet"
-            count={selectedMembers.length}
-            showRemoveButton
-            height="auto"
-          />
-        </div>
+        />
+        
+        <MemberList 
+          title="Selected Members"
+          members={selectedMembers}
+          onRemove={removeMember}
+          emptyMessage="No members selected yet"
+          count={selectedMembers.length}
+          showRemoveButton
+          height="auto"
+        />
+      </div>
       )}
     </div>
   );
