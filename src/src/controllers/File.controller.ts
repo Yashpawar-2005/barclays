@@ -11,6 +11,8 @@ import detectFileType from '../Helpers/Detectfiletype';
 import uploadBufferToS3 from "../Helpers/uploadtos3";
 import fetch from "node-fetch";
 import { fetchOrderEmail, buildCombinedPdfBuffer } from './emailcontroller';
+import PDFDocument from 'pdfkit';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 // import uploadBufferToS3 from '../Helpers/uploadtos3';
 // import { saveFileRecord } from '../Helpers/SaveFileRecord';
 
@@ -25,26 +27,100 @@ const IMAP_PORT = parseInt(process.env.IMAP_PORT!, 10);
 const IMAP_TLS  = process.env.IMAP_TLS === 'true';
 
 
+
 const EXTERNAL_API_URL = process.env.EXTERNAL_API_URL || 'http://127.0.0.1:5000/py/structure_data';
-
-
-
-
-
-const forwardFileToExternalService = async (termsheet_id:number) => {
-  try {
-    const response = await axios.post(EXTERNAL_API_URL, {termsheet_id},{
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error forwarding file to external service:', error);
-    throw error;
-  }
+const forwardFileToExternalService = async (termsheet_id: number) => {
+  const resp = await axios.post(EXTERNAL_API_URL, { termsheet_id }, {
+    headers: { 'Content-Type': 'application/json' }
+  });
+  return resp.data;
 };
 
+export const function_to_upload_structured_sheet = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: 'No file uploaded' });
+      return;
+    }
+    const file = req.file;
+    const fileType = detectFileType(file);
+    const orgId = parseInt(req.body.orgId, 10);
+    const chatMessage = (req.body.chatMessage as string) || '';
+
+    // 1) Upload structured sheet
+    const s3Result = await uploadToS3(file);
+    const fileRecord = await saveStructuredFile({
+      fileName: file.originalname,
+      orgid:    orgId,
+      fileType,
+      fileSize: file.size,
+      s3Url:    s3Result.Location,
+      mimeType: file.mimetype
+    });
+    fs.unlink(file.path, err => err && console.error('Cleanup failed:', err));
+
+    // 2) Build & upload instructions PDF (if any)
+// 2) Build & upload instructions PDF (if any)
+let instructionsPdfUrl: string | null = null;
+if (chatMessage.trim()) {
+  const doc = new PDFDocument({ margin: 50 });
+  const buffers: Buffer[] = [];
+  doc.on('data', chunk => buffers.push(chunk));
+  const finished = new Promise<void>(r => doc.on('end', r));
+
+  doc.fontSize(14).text('Additional Instructions', { underline: true });
+  doc.moveDown();
+  doc.fontSize(12).text(chatMessage, { lineGap: 4 });
+  doc.end();
+  await finished;
+
+  const pdfBuffer = Buffer.concat(buffers);
+  const bucket = process.env.AWS_S3_BUCKET!;
+  const key = `instructions/${orgId}/instructions-${Date.now()}.pdf`;
+
+  await s3Client.send(new PutObjectCommand({
+    Bucket:      bucket,
+    Key:         key,
+    Body:        pdfBuffer,
+    ContentType: 'application/pdf',
+    ACL:         'public-read',
+  }));
+  instructionsPdfUrl = `https://${bucket}.s3.amazonaws.com/${key}`;
+
+  // ─── NEW: persist the instructions PDF as a File and hook it into mapsheetFileId ───
+  const instructionFile = await prismaconnection.file.create({
+    data: {
+      s3Link: instructionsPdfUrl,
+      type:   'PDF'      // or any tag you prefer
+    }
+  });
+
+  // Attach this new File to your Termsheet
+  await prismaconnection.termsheet.update({
+    where: { id: fileRecord.updatedTermsheet.id },
+    data:  { mapsheetFileId: instructionFile.id }
+  });
+}
+
+
+    // 3) Forward to external service
+    const externalResponse = await forwardFileToExternalService(fileRecord.updatedTermsheet.id);
+
+    // 4) Respond
+    res.status(201).json({
+      message:             'Structured sheet uploaded successfully',
+      structuredSheet:     { fileId: fileRecord, url: s3Result.Location },
+      instructionsPdfUrl,   // string or null
+      externalResponse      // <-- matches the variable name
+    });
+  } catch (err: any) {
+    console.error('Error in structured upload:', err);
+    res.status(500).json({ error: 'Failed to process structured sheet upload', message: err.message });
+  }
+};
 const function_to_upload = async (req: Request, res: Response): Promise<void> => {
   try {
     console.log("🔥 req.file:", req.file);
@@ -115,53 +191,6 @@ console.log(orgId)
     return;
   }
 };
-
-const function_to_upload_structured_sheet= async (req: Request, res: Response): Promise<void> => {
-    try {
-      // console.log(req)
-      if (!req.file) {
-          res.status(400).json({ error: 'No file uploaded' });
-        return 
-      }
-      const file = req.file;
-      const fileType = detectFileType(file);
-  
-      const s3Result = await uploadToS3(file);
-  
-      const fileRecord = await saveStructuredFile({
-        fileName: file.originalname,
-        orgid:parseInt(req.body.orgId),
-        fileType,
-        fileSize: file.size,
-        s3Url: s3Result.Location,
-        mimeType: file.mimetype
-      });      
-      const externalResponse = await forwardFileToExternalService(fileRecord.updatedTermsheet.id);
-      console.log(externalResponse)
-      fs.unlinkSync(file.path);
-      
-      res.status(201).json({
-        message: 'File uploaded successfully',
-        fileId: fileRecord,
-        url: s3Result.Location,
-        externalServiceResponse: externalResponse
-      });
-      return 
-    } catch (error: any) {
-      console.error('Error processing file upload:', error);
-      res.status(500).json({
-          error: 'Failed to process file upload',
-          message: error.message
-        });
-        return
-    }
-  };
-  
-
-
-
-
-
 
   import { GetObjectCommand } from '@aws-sdk/client-s3';
   import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -496,4 +525,4 @@ const function_to_upload_structured_sheet= async (req: Request, res: Response): 
   export default get_discrepancies;
 
 
-export  {function_to_upload , getfile, function_to_upload_structured_sheet,get_struct_file,get_Validated_File,get_discrepancies}
+export  {function_to_upload , getfile, get_struct_file,get_Validated_File,get_discrepancies}
