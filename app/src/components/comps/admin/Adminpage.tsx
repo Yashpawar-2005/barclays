@@ -10,7 +10,7 @@ import {
 import { Badge } from '../../ui/badge'
 import { Button } from '../../ui/button'
 import { Input } from '../../ui/input'
-import { Search, Filter, ArrowRight, FileText } from 'lucide-react'
+import { Search, Filter, ArrowRight, FileText,Upload } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '../../ui/avatar'
 import { api } from '../../../services/axios'
 
@@ -195,11 +195,32 @@ export default function Adminpage() {
     <div className="flex flex-col min-h-screen bg-white">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 py-4">
-        <div className="max-w-screen-xl mx-auto flex items-center px-4">
-          <FileText className="h-6 w-6 mr-3 text-black" />
-          <h1 className="text-xl font-bold text-black">Termsheets Admin</h1>
-        </div>
-      </header>
+  <div className="max-w-screen-xl mx-auto flex items-center justify-between px-4">
+    <div className="flex items-center">
+      <FileText className="h-6 w-6 mr-3 text-black" />
+      <h1 className="text-xl font-bold text-black">Termsheets Admin</h1>
+    </div>
+
+    {/* Desktop: full text button */}
+    <Button
+      size="sm"
+      className="hidden sm:inline-flex py-1 px-3 bg-black text-white hover:bg-gray-800"
+      onClick={() => navigate(`/org/${orgId}`)}
+    >
+      <Upload className="h-4 w-4 mr-2" />
+      Upload Termsheet
+    </Button>
+
+    {/* Mobile: icon-only button */}
+    <Button
+      size="sm"
+      className="sm:hidden p-2 bg-black text-white hover:bg-gray-800"
+      onClick={() => navigate(`/org/${orgId}`)}
+    >
+      <Upload className="h-5 w-5" />
+    </Button>
+  </div>
+</header>
 
       {/* Main Content */}
       <main className="flex-grow py-6">
